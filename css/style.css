@@ -69,6 +69,7 @@ ul {
 body {
   color: var(--black-color);
   font-family: 'OpenSans', sans-serif;
+  font-size: 14px;
   font-style: normal;
   font-weight: 400;
   line-height: normal;
@@ -113,59 +114,67 @@ body {
 .clients {
   padding-top: 40px;
   padding-bottom: 102px;
-  overflow-x: scroll;
 }
 
 .clients__title {
-  margin-bottom: 9px;
+  margin-bottom: 3px;
   font-size: 24px;
   line-height: normal;
 }
 
 .clients__table {
+  margin-bottom: 40px;
   width: 100%;
   font-size: 12px;
-  overflow-x: scroll;
+  overflow-x: auto;
 }
 
-.clients__table-header {
+.clients__table-row {
+  display: flex;
+  align-items: end;
+  gap: 10px;
+  padding: 10px 20px;
+  padding-left: 20px;
+  padding-right: 20px;
+}
+
+.clients__table-head {
+  padding-top: 8px;
   padding-bottom: 8px;
-  font-weight: 400;
-  text-align: left;
-  vertical-align: bottom;
+  color: var(--txt_grey, #B0B0B0);
 }
 
 .clients__table-header:first-child {
-  padding-left: 18px;
-  min-width: 80px;
-  width: 9%;
+  min-width: 50px;
+  width: 6.3%;
   color: var(--firm, #9873FF);
 }
 
 .clients__table-header:nth-child(2) {
-  min-width: 218px;
-  width: 23.8%;
+  min-width: 208px;
+  width: 23.7%;
 }
 
 .clients__table-header:nth-child(3) {
-  padding-right: 21px;
-  min-width: 98px;
-  width: 16%;
+  padding-right: 14px;
+  min-width: 88px;
+  width: 15.7%;
 }
 
 .clients__table-header:nth-child(4) {
-  padding-right: 12px;
-  min-width: 98px;
-  width: 14.8%;
+  padding-right: 4px;
+  min-width: 88px;
+  width: 14.4%;
 }
 
 .clients__table-header:nth-child(5) {
-  min-width: 129px;
-  width: 15.2%;
+  min-width: 119px;
+  width: 14.8%;
 }
 
 .clients__table-header:nth-child(6) {
-  min-width: 105px;
+  width: 19.8%;
+  min-width: 95px;
 }
 
 .clients__table-header_sortable {
@@ -173,7 +182,43 @@ body {
 }
 
 .clients__table-body {
-  display: block;
   background-color: var(--white-color);
   min-height: 300px;
+}
+
+.clients__add {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 13.4px 25.5px;
+  margin: 0 auto;
+  border: 1px solid var(--firm, #9873FF);
+  color: var(--firm, #9873FF);
+  font-size: 14px;
+  font-weight: 600;
+  background-color: transparent;
+}
+
+.loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  min-height: inherit;
+  width: 100%;
+}
+
+@keyframes loading__spinner {
+  to { transform: rotate(360deg); }
+}
+
+.loading__spinner {
+  display: inline-block;
+  width: 36px;
+  height: 36px;
+  vertical-align: text-bottom;
+  border: 4px solid var(--firm);
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: loading__spinner .75s linear infinite;
 }
