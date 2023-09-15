@@ -128,7 +128,7 @@ body {
 }
 
 .clients__table {
-  --min-width: 984px;
+  --min-width: 728px;
   margin-bottom: 40px;
   width: 100%;
   font-size: 12px;
@@ -139,7 +139,7 @@ body {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 20px 20px;
+  padding: 19.7px 20px;
   min-width: var(--min-width);
 }
 
@@ -243,7 +243,8 @@ body {
 
 .clients__table-data-cell:nth-child(3), .clients__table-data-cell:nth-child(4) {
   display: flex;
-  gap: 10px;
+  column-gap: 10px;
+  flex-wrap: wrap;
 }
 
 .clients__table-data-cell:nth-child(5) {
@@ -253,11 +254,14 @@ body {
 
 .clients__table-data-cell:nth-child(6) {
   display: flex;
-  gap: 30px;
+  flex-wrap: wrap;
+  column-gap: 30px;
+  row-gap: 5px;
 }
 
 .clients__contact {
   position: relative;
+  font-size: 0;
 }
 
 .clients__contact:hover .clients__contact-text {
@@ -309,8 +313,9 @@ body {
 }
 
 .clients__button {
-  display: flex;
+  display: block;
   border: none;
+  min-height: 20px;
   background-color: transparent;
   cursor: pointer;
 }
@@ -359,9 +364,10 @@ body {
 }
 
 .loading__spinner {
+  --spinner-size: 36px;
   display: inline-block;
-  width: 36px;
-  height: 36px;
+  width: var(--spinner-size);
+  height: var(--spinner-size);
   vertical-align: text-bottom;
   border: 4px solid var(--firm);
   border-right-color: transparent;
