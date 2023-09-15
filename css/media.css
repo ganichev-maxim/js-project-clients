@@ -1,16 +1,4 @@
-@media (max-width: 1024px) {
-}
 @media (max-width: 992px) {
-
-  .loading {
-    position: relative;
-    justify-content: flex-start;
-  }
-
-  .loading__spinner {
-    position: sticky;
-    left: calc(50vw - var(--spinner-size));
-  }
 
   .clients__table {
     margin-bottom: 43px;
@@ -36,22 +24,19 @@
 
 @media (max-width: 375px) {
   .container {
-    --contaier-padding: 10px;
-    padding: 0 var(--contaier-padding);
+    padding: 0 10px;
   }
 
   .header {
     padding: 8px 0;
   }
 
-  .header__container {
-    justify-content: center;
-  }
-
   .header__logo {
-    margin: 0;
+    position: sticky;
+    left: 50vw;
     height: 24px;
     width: 24px;
+    transform: translateX(-50%);
   }
 
   .header__filter {
@@ -71,6 +56,6 @@
   }
 
   .loading__spinner {
-    left: calc(50vw - var(--spinner-size) + var(--contaier-padding));
+    left: calc(50vw - var(--spinner-size) / 2);
   }
 }
