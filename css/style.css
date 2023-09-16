@@ -66,7 +66,10 @@ ul {
 :root {
   --black-color: #333;
   --firm: #9873FF;
+  --firm-light: rgba(152, 115, 255, 0.7);
   --grey-color: #F5F5F5;
+  --grey: #C8C5D1;
+  --red: #F06A4D;
   --txt_grey: #B0B0B0;
   --white-color: #FFF
 }
@@ -79,6 +82,71 @@ body {
   font-weight: 400;
   line-height: normal;
   background-color: var(--grey-color);
+}
+
+.btn {
+  display: block;
+  border: none;
+  font-size: 14px;
+  font-weight: 600;
+  background-color: transparent;
+  cursor: pointer;
+  transition: color 0.15s ease-in-out, background-color 0.15s ease-in-out, border-color 0.15s ease-in-out, opacity 0.15s ease-in-out;
+}
+
+.btn:focus {
+  outline: none;
+}
+
+.btn__icon {
+  transition: fill 0.15s ease-in-out;
+}
+
+.btn-secondary {
+  border: 1px solid var(--firm, #9873FF);
+  color: var(--firm, #9873FF);
+  background-color: transparent;
+}
+
+.btn-secondary__icon {
+  fill: var(--firm, #9873FF);
+}
+
+.btn-secondary:hover, .btn-secondary:focus {
+  color: var(--white-color, #FFF);
+  background-color: var(--firm-light, rgba(152,115,255, 0.7));
+}
+
+.btn-secondary:hover .btn-secondary__icon, .btn-secondary:focus .btn-secondary__icon {
+  fill: var(--white-color, #FFF);
+}
+
+.btn-secondary:active {
+  color: var(--white-color, #FFF);
+  background-color: var(--firm, #9873FF);
+}
+
+.btn-secondary:active .btn-secondary__icon {
+  fill: var(--white-color, #FFF);
+}
+
+.btn-secondary:disabled {
+  color: var(--grey, #C8C5D1);
+  border-color: var(--grey, #C8C5D1);
+}
+
+.btn-secondary:disabled .btn-secondary__icon {
+  fill: var(--grey, #C8C5D1);
+}
+
+.btn-simple {
+  color: var(--black-color, #333);
+  font-size: 14px;
+  font-weight: 400;
+}
+
+.btn-simple:hover, .btn-simple:focus, .btn-simple:active {
+  color: var(--firm, #9873FF);
 }
 
 .app {
@@ -267,13 +335,23 @@ body {
   font-size: 0;
 }
 
+.clients__contact-icon {
+  fill: var(--firm-light, rgba(152, 115, 255, 0.7));
+  transition: fill 0.15s ease-in-out;
+}
+
 .clients__contact:hover .clients__contact-text {
-  display: block;
+  visibility: visible;
+  opacity: 1;
+  z-index: 1;
+}
+
+.clients__contact:hover .clients__contact-icon {
+  fill: var(--firm, #9873FF);
 }
 
 .clients__contact-text {
   --tooltip-color: var(--black-color, #333);
-  display: none;
   position: absolute;
   left: 50%;
   top: -7px;
@@ -282,8 +360,11 @@ body {
   font-size: 12px;
   font-weight: 700;
   background-color: var(--tooltip-color);
+  opacity: 0;
   transform: translateX(-50%) translateY(-100%);
+  visibility: hidden;
   white-space: nowrap;
+  transition: opacity 0.15s ease-in-out;
 }
 
 .clients__contact-text::after {
@@ -316,11 +397,7 @@ body {
 }
 
 .clients__button {
-  display: block;
-  border: none;
   min-height: 20px;
-  background-color: transparent;
-  cursor: pointer;
 }
 
 .clients__button::before {
@@ -330,10 +407,15 @@ body {
   width: 16px;
   background-size: cover;
   background-repeat: no-repeat;
+  vertical-align: middle;
 }
 
 .clients__change-button::before {
   background-image: url('../img/edit.jpg');
+}
+
+.clients__delete-button:hover, .clients__delete-button:focus, .clients__delete-button:active {
+  color: var(--red, #F06A4D);
 }
 
 .clients__delete-button::before {
@@ -342,19 +424,12 @@ body {
 
 .clients__add {
   display: flex;
-  position: fixed;
+  position: sticky;
   align-items: center;
   gap: 10px;
-  left: 50vw;
+  left: calc(50vw - 108px);
   padding: 13.4px 25.5px;
-  margin: 0 auto;
-  border: 1px solid var(--firm, #9873FF);
-  color: var(--firm, #9873FF);
-  font-size: 14px;
-  font-weight: 600;
   white-space: nowrap;
-  background-color: transparent;
-  transform: translateX(-50%);
 }
 
 .loading {
