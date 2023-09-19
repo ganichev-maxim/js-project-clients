@@ -47,14 +47,15 @@ img {
 	max-width: 100%;
 }
 
-h1, h2, h3, p, th, button {
+h1, h2, h3, p, th, button{
   margin: 0;
   padding: 0;
 }
 
-a:focus, input:focus, button:focus {
+a:focus, input:focus, button:focus, div:focus {
   outline: 1px solid var(--firm, #9873FF);
   outline-offset: 3px;
+  z-index: 1;
 }
 
 ul {
@@ -278,11 +279,16 @@ body {
 }
 
 .custom-select select {
-  display: none;
+  position: absolute;
+  visibility: hidden;
 }
 
 .custom-select__selected {
+  display: block;
+  height: 100%;
+  width: 100%;
   border: 1px solid var(--grey, #C8C5D1);
+  text-align: left;
   background: #E7E5EB;
 }
 
@@ -332,7 +338,8 @@ body {
   display: none;
 }
 
-.custom-select__select-items div:hover, .custom-select__same-as-selected {
+.custom-select__select-items div:hover, .custom-select__select-items div:focus, .custom-select__same-as-selected {
+  outline: none;
   background-color: rgba(0, 0, 0, 0.1);
 }
 

@@ -16,19 +16,23 @@
   }
 
   function transformToCustomSelect(selectContainer) {
+    const selectableElements = [];
     const selectElement = selectContainer.getElementsByTagName("select")[0];
     const optionsLength = selectElement.length;
     const selectedOption = document.createElement('div');
+    selectedOption.tabIndex = 0;
     selectedOption.classList.add('custom-select__selected');
     selectedOption.innerHTML = selectElement.options[selectElement.selectedIndex].innerHTML;
     selectedOption.dataset.value = selectElement.options[selectElement.selectedIndex].value;
     selectContainer.append(selectedOption);
+    selectableElements.push(selectedOption);
     const selectItems = document.createElement('div');
     selectItems.classList.add('custom-select__select-items', 'custom-select__select-hide');
     for (let i = 0; i < optionsLength; i++) {
       const selectOption = document.createElement('div');
       selectOption.innerHTML = selectElement.options[i].innerHTML;
       selectOption.dataset.value = selectElement.options[i].value;
+      selectOption.tabIndex = 0;
       selectOption.addEventListener('click', function (event) {
         for (let j = 0; j < optionsLength; j++) {
           if (selectElement.options[j].value === this.dataset.value) {
@@ -45,7 +49,21 @@
         }
         selectedOption.click();
       });
+      selectOption.addEventListener('keydown', function (event) {
+        if (event.code === 'Enter' || event.code === 'Space') {
+          event.preventDefault();
+          selectOption.dispatchEvent(new Event("click"));
+        }
+      });
+      selectOption.addEventListener('focusout', function (event) {
+        event.stopPropagation();
+        event.preventDefault();
+        if (!selectableElements.includes(event.relatedTarget)) {
+          closeAllSelect();
+        }
+      });
       selectItems.append(selectOption);
+      selectableElements.push(selectOption);
     }
     selectContainer.append(selectItems);
     selectedOption.addEventListener('click', function (event) {
@@ -53,6 +71,19 @@
       closeAllSelect(this);
       selectItems.classList.toggle('custom-select__select-hide');
       this.classList.toggle("custom-select__selected_active");
+    });
+    selectedOption.addEventListener('keydown', function (event) {
+      if (event.code === 'Enter' || event.code === 'Space') {
+        event.preventDefault();
+        selectedOption.dispatchEvent(new Event("click"));
+      }
+    });
+    selectedOption.addEventListener('focusout', function (event) {
+      event.stopPropagation();
+      event.preventDefault();
+      if (!selectableElements.includes(event.relatedTarget)) {
+        closeAllSelect();
+      }
     });
   }
 
