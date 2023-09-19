@@ -85,13 +85,15 @@ body {
 }
 
 .btn {
-  display: block;
+  display: inline-block;
   border: none;
   font-size: 14px;
   font-weight: 600;
+  line-height: inherit;
   background-color: transparent;
   cursor: pointer;
   transition: color 0.15s ease-in-out, background-color 0.15s ease-in-out, border-color 0.15s ease-in-out, opacity 0.15s ease-in-out;
+  user-select: none;
 }
 
 .btn:focus {
@@ -100,6 +102,23 @@ body {
 
 .btn__icon {
   transition: fill 0.15s ease-in-out;
+}
+
+.btn-primary {
+  color: var(--white-color, #FFF);
+  background-color: var(--firm, #9873FF);
+}
+
+.btn-primary:hover, .btn-primary:focus {
+  background-color: var(--firm-light, rgba(152,115,255, 0.7));
+}
+
+.btn-primary:active {
+  background-color: var(--firm, #9873FF);
+}
+
+.btn-primary:disabled {
+  color: var(--grey, #C8C5D1);
 }
 
 .btn-secondary {
@@ -147,6 +166,174 @@ body {
 
 .btn-simple:hover, .btn-simple:focus, .btn-simple:active {
   color: var(--firm, #9873FF);
+}
+
+.overlay {
+  position: fixed; /* Positioning and size */
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(51, 51, 51, 0.6);
+}
+
+.modal {
+  position: fixed;
+  top: 50vh;
+  left: 50vw;
+  min-height: 100px;
+  max-width: 450px;
+  width: calc(100vw - 20px);
+  background-color: white;
+  transform: translate(-50%,-50%);
+}
+
+.modal__btn-close {
+  position: absolute;
+  right: 15px;
+  top: 15px;
+  height: 29px;
+  width: 29px;
+  opacity: 0.7;
+}
+
+.modal__btn-close:hover {
+  opacity: 1;
+}
+
+.modal__btn-close:before, .modal__btn-close:after {
+  position: absolute;
+  left: 14px;
+  top: 4px;
+  content: '';
+  height: 20.506px;
+  width: 1.367px;
+  background-color: var(--grey, #C8C5D1);
+}
+
+.modal__btn-close:before {
+  transform: rotate(45deg);
+}
+
+.modal__btn-close:after {
+  transform: rotate(-45deg);
+}
+
+.modal__title {
+  color: var(--black, #333);
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.form-group {
+  position: relative;
+  margin-bottom: 15px;
+  padding-top: 14.5px;
+}
+
+.form-group__label {
+  position: absolute;
+  bottom: 5px;
+  left: 0px;
+  font-size: 14px;
+  color: var(--txt_grey, #B0B0B0);
+  pointer-events: none;
+  transition: all 0.15s ease-out;
+}
+
+.form-group__input {
+  display: inline-block;
+  padding: 4px 0;
+  width: 100%;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: normal;
+  background: none;
+  border: 0;
+  border-bottom: 1px solid rgba(200,197,209, 0.5);
+  color: var(--black-color, #333);
+  box-shadow: none;
+  outline: none;
+}
+
+.form-group__input:focus {
+  outline: none;
+}
+
+.form-group__input:required + .form-group__label::after {
+  content: '*';
+  color: var(--firm, #9873FF);
+}
+
+.form-group__input:focus + .form-group__label,
+.form-group__input.has-value + label {
+  top: 0;
+  font-size: 10px;
+}
+
+.custom-select {
+  position: relative;
+  color: var(--black-color, #333);
+  font-size: 12px;
+}
+
+.custom-select select {
+  display: none;
+}
+
+.custom-select__selected {
+  border: 1px solid var(--grey, #C8C5D1);
+  background: #E7E5EB;
+}
+
+.custom-select__selected:after {
+  position: absolute;
+  content: url('../img/arrow_back_ios.svg');
+  top: 13px;
+  right: 8px;
+  width: 12px;
+  height: 12px;
+}
+
+.custom-select__selected.custom-select__selected_active:after {
+  content: url('../img/arrow_up_ios.svg');
+}
+
+.custom-select__select-items div, .custom-select__selected {
+  --items-padding: 4.5px;
+  padding: 10px 12px;
+  cursor: pointer;
+}
+
+.custom-select__select-items div:first-child {
+  padding-bottom: var(--items-padding);
+}
+
+.custom-select__select-items div:first-child {
+  padding-bottom: var(--items-padding);
+}
+
+.custom-select__select-items div:not(:first-child):not(:last-child) {
+  padding-top: var(--items-padding);
+  padding-bottom: var(--items-padding);
+}
+
+.custom-select__select-items {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 99;
+  border: 1px solid var(--grey, #C8C5D1);
+  background-color: #F4F3F6;
+}
+
+.custom-select__select-hide {
+  display: none;
+}
+
+.custom-select__select-items div:hover, .custom-select__same-as-selected {
+  background-color: rgba(0, 0, 0, 0.1);
 }
 
 .app {
@@ -457,4 +644,141 @@ body {
   border-right-color: transparent;
   border-radius: 50%;
   animation: loading__spinner .75s linear infinite;
+}
+
+.edit-client {
+  --side-padding: 30px;
+  display: flex;
+  flex-direction: column;
+  padding: 24px var(--side-padding) 25px;
+  min-height: 400px;
+}
+
+.edit-client__title {
+  margin-bottom: 15px;
+}
+
+.edit-client__form {
+  display: flex;
+  flex-direction: column;
+}
+
+.edit-client__lastName {
+  padding-top: 13.5px;
+}
+
+.edit-client__middleName {
+  margin-bottom: 26px;
+}
+
+.edit-client__contacts {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 8px var(--side-padding);
+  margin-bottom: 8px;
+  margin-left: calc(-1 * var(--side-padding));
+  margin-right: calc(-1 * var(--side-padding));
+  background-color: rgba(200, 197, 209, 0.3);
+}
+
+.edit-client__btn-add-group {
+  display: flex;
+  align-items: center;
+  position: relative;
+}
+
+.edit-client__btn-add-icon {
+  margin-right: 4px;
+}
+
+.edit-client__btn-add-icon_action {
+  opacity: 0;
+  transition: opacity .15s ease-in-out;
+}
+
+.edit-client__btn-add-icon_defult {
+  transition: opacity .15s ease-in-out;
+}
+
+.edit-client__btn-add {
+  font-weight: 600;
+}
+
+.edit-client__btn-add::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  width: 100%;
+}
+
+.edit-client__btn-add-group:has(.edit-client__btn-add:hover) .edit-client__btn-add-icon_action,
+.edit-client__btn-add-group:has(.edit-client__btn-add:focus) .edit-client__btn-add-icon_action,
+.edit-client__btn-add-group:has(.edit-client__btn-add:active) .edit-client__btn-add-icon_action {
+  opacity: 1;
+}
+
+.edit-client__btn-add-group:has(.edit-client__btn-add:hover) .edit-client__btn-add-icon_defult,
+.edit-client__btn-add-group:has(.edit-client__btn-add:focus) .edit-client__btn-add-icon_defult,
+.edit-client__btn-add-group:has(.edit-client__btn-add:active) .edit-client__btn-add-icon_defult {
+  opacity: 0;
+}
+
+.edit-client__errors {
+  margin-bottom: 9px;
+  min-height: 8px;
+  color: var(--red, #F06A4D);
+  font-size: 10px;
+  text-align: center;
+}
+
+.edit-client__btn-save {
+  align-self: center;
+  margin-bottom: 5px;
+  padding: 12.5px 35px;
+}
+
+.edit-client__btn-cancel {
+  align-self: center;
+  font-size: 12px;
+  text-decoration: underline;
+}
+
+.edit-client__contacts-list {
+  margin-bottom: 25px;
+  width: 100%;
+}
+
+.edit-client__contacts-item {
+  display: flex;
+  align-items: stretch;
+  min-height: 37px;
+}
+
+.edit-client__contacts-item:not(:last-child) {
+  margin-bottom: 15px;
+}
+
+.edit-client__contact-type {
+  flex-grow: 0;
+  flex-shrink: 0;
+  width: 123px;
+}
+
+.edit-client__contact-value {
+  flex-basis: 100%;
+}
+
+.edit-client__contact-delete {
+  flex-grow: 0;
+  flex-shrink: 0;
+  width: 27px;
+}
+
+.edit-client__contacts:has(.edit-client__contacts-item) {
+  padding-top: 25px;
+  padding-bottom: 25px;
 }
