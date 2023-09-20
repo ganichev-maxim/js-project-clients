@@ -183,9 +183,21 @@
       contactLine.append(contactType);
       const contactValue = document.createElement('input');
       contactValue.classList.add('edit-client__contact-value');
+      contactValue.placeholder = 'Введите данные контакта';
       contactLine.append(contactValue);
       const deleteButton = document.createElement('button');
-      deleteButton.classList.add('btn', 'edit-client__contact-delete');
+      deleteButton.classList.add('btn', 'edit-client__contact-delete', 'tooltip');
+      deleteButton.type = 'button';
+      const deleteImg = document.createElement('div');
+      deleteImg.classList.add('close-sign');
+      deleteButton.append(deleteImg);
+      const tooltipText = document.createElement('div');
+      tooltipText.classList.add('tooltip__text');
+      tooltipText.innerHTML = 'Удалить контакт';
+      deleteButton.addEventListener('click', function (event) {
+        contactLine.remove();
+      })
+      deleteButton.append(tooltipText);
       contactLine.append(deleteButton);
       contactsList.append(contactLine);
     })

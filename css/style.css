@@ -55,7 +55,6 @@ h1, h2, h3, p, th, button{
 a:focus, input:focus, button:focus, div:focus {
   outline: 1px solid var(--firm, #9873FF);
   outline-offset: 3px;
-  z-index: 1;
 }
 
 ul {
@@ -307,7 +306,7 @@ body {
 
 .custom-select__select-items div, .custom-select__selected {
   --items-padding: 4.5px;
-  padding: 10px 12px;
+  padding: 9.5px 12px;
   cursor: pointer;
 }
 
@@ -338,9 +337,77 @@ body {
   display: none;
 }
 
-.custom-select__select-items div:hover, .custom-select__select-items div:focus, .custom-select__same-as-selected {
+.custom-select__select-items div:hover, .custom-select__select-items div:focus, .custom-select__same-as-selected,
+.custom-select__selected:hover, .custom-select__selected:focus {
   outline: none;
   background-color: rgba(0, 0, 0, 0.1);
+}
+
+.close-sign {
+  display: inline-block;
+  position: relative;
+  height: 12px;
+  width: 12px;
+  border: 1px solid var(--txt_grey, #B0B0B0);
+  border-radius: 50%;
+  transition: border-color 0.15s ease-in-out;
+}
+
+.close-sign:before, .close-sign:after {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  content: '';
+  height: 8px;
+  width: 1px;
+  background-color: var(--txt_grey, #B0B0B0);
+  transition: background-color 0.15s ease-in-out;
+}
+
+.close-sign:before {
+  transform: translateY(-45%) rotate(45deg);
+}
+
+.close-sign:after {
+  transform: translateY(-45%) rotate(-45deg);
+}
+
+.tooltip {
+  position: relative;
+}
+
+.tooltip__text {
+  --tooltip-color: var(--black-color, #333);
+  position: absolute;
+  left: 50%;
+  top: -7px;
+  padding: 7px 14px;
+  color: var(--white-color, #FFF);
+  font-size: 12px;
+  font-weight: 700;
+  background-color: var(--tooltip-color);
+  opacity: 0;
+  transform: translateX(-50%) translateY(-100%);
+  visibility: hidden;
+  white-space: nowrap;
+  transition: opacity 0.15s ease-in-out;
+}
+
+.tooltip__text::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  margin-left: -5px;
+  border-width: 7px 5px;
+  border-style: solid;
+  border-color: var(--tooltip-color) transparent transparent transparent;
+}
+
+.tooltip:hover .tooltip__text {
+  visibility: visible;
+  opacity: 1;
+  z-index: 1;
 }
 
 .app {
@@ -534,42 +601,12 @@ body {
   transition: fill 0.15s ease-in-out;
 }
 
-.clients__contact:hover .clients__contact-text {
-  visibility: visible;
-  opacity: 1;
-  z-index: 1;
-}
-
 .clients__contact:hover .clients__contact-icon {
   fill: var(--firm, #9873FF);
 }
 
 .clients__contact-text {
-  --tooltip-color: var(--black-color, #333);
-  position: absolute;
-  left: 50%;
-  top: -7px;
-  padding: 7px 14px;
   color: var(--firm, #9873FF);
-  font-size: 12px;
-  font-weight: 700;
-  background-color: var(--tooltip-color);
-  opacity: 0;
-  transform: translateX(-50%) translateY(-100%);
-  visibility: hidden;
-  white-space: nowrap;
-  transition: opacity 0.15s ease-in-out;
-}
-
-.clients__contact-text::after {
-  content: "";
-  position: absolute;
-  top: 100%;
-  left: 50%;
-  margin-left: -5px;
-  border-width: 7px 5px;
-  border-style: solid;
-  border-color: var(--tooltip-color) transparent transparent transparent;
 }
 
 .clients__contact-type {
@@ -755,8 +792,11 @@ body {
 }
 
 .edit-client__contacts-list {
-  margin-bottom: 25px;
   width: 100%;
+}
+
+.edit-client__contacts-list:has(.edit-client__contacts-item) {
+  margin-bottom: 25px;
 }
 
 .edit-client__contacts-item {
@@ -777,12 +817,50 @@ body {
 
 .edit-client__contact-value {
   flex-basis: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--grey, #C8C5D1);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.edit-client__contact-value::placeholder {
+  color: var(--txt_grey, #B0B0B0);
+  font-weight: 400;
+}
+
+.edit-client__contact-value:focus {
+  outline: none;
 }
 
 .edit-client__contact-delete {
+  --action-color: var(--red, #F06A4D);
+  display: flex;
+  align-items: center;
+  justify-content: center;
   flex-grow: 0;
   flex-shrink: 0;
   width: 27px;
+  border: 1px solid var(--grey, #C8C5D1);
+  background: #E7E5EB;
+  transition: border-color .15s ease-in-out;
+}
+
+.edit-client__contact-delete:hover, .edit-client__contact-delete:focus, .edit-client__contact-delete:active {
+  border-color: var(--action-color);
+}
+
+.edit-client__contact-delete:hover .close-sign, .edit-client__contact-delete:focus .close-sign, .edit-client__contact-delete:active .close-sign {
+  border-color: var(--action-color);
+}
+
+.edit-client__contact-delete:hover .close-sign::after, .edit-client__contact-delete:hover .close-sign::before,
+.edit-client__contact-delete:focus .close-sign::after, .edit-client__contact-delete:focus .close-sign::before,
+.edit-client__contact-delete:active .close-sign::after, .edit-client__contact-delete:active .close-sign::before {
+  background-color: var(--action-color);
+}
+.edit-client__contact-delete .tooltip__text {
+  top: 0;
+  transition-delay: 1s;
 }
 
 .edit-client__contacts:has(.edit-client__contacts-item) {
