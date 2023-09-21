@@ -271,6 +271,10 @@ body {
   font-size: 10px;
 }
 
+.form-group_validated .form-group__input:invalid {
+  border-color: rgba(240, 106, 77, 0.5);
+}
+
 .custom-select {
   position: relative;
   color: var(--black-color, #333);

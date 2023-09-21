@@ -125,7 +125,7 @@
 
     const labelElement = document.createElement('label');
     labelElement.classList.add('form-group__label')
-    labelElement.for = id;
+    labelElement.htmlFor = id;
     labelElement.innerText = label
     formGroup.append(labelElement);
     return formGroup;
@@ -142,6 +142,7 @@
     const selectContainer = document.createElement('div');
     selectContainer.classList.add('edit-client__contact-type', 'custom-select');
     const contactType = document.createElement('select');
+    contactType.name = 'contactType';
     selectContainer.append(contactType);
     contactType.append(createOption('telephone', 'Телефон'));
     contactType.append(createOption('email', 'Email'));
@@ -184,6 +185,7 @@
       const contactValue = document.createElement('input');
       contactValue.classList.add('edit-client__contact-value');
       contactValue.placeholder = 'Введите данные контакта';
+      contactValue.name = 'contactValue';
       contactLine.append(contactValue);
       const deleteButton = document.createElement('button');
       deleteButton.classList.add('btn', 'edit-client__contact-delete', 'tooltip');
@@ -206,6 +208,30 @@
     return contactsElement;
   }
 
+  function resetValidationResult(form) {
+    let inputs = form.querySelectorAll('input');
+    for (const input of inputs) {
+      input.setCustomValidity("");
+    }
+  }
+
+  function showValidationMessage(form, validationResults) {
+    let errorText = 'Ошибка:\n';
+    const inputs = form.querySelectorAll('input');
+    for (const input of inputs) {
+      if (!input.validity.valid) {
+        const inputLabel = document.querySelector('label[for=\'' + input.id + '\']');
+        if (inputLabel) {
+          errorText += `${inputLabel.textContent}: ${input.validationMessage}\n`;
+        } else {
+          errorText += `${input.validationMessage}\n`;
+        }
+      }
+    }
+    validationResults.innerText = errorText;
+    validationResults.style.display = 'block';
+  }
+
   function openEditClientPopup({onSave, onClose}, client) {
     const modal = createModal(onClose);
     const content = document.createElement('div');
@@ -219,6 +245,7 @@
 
     const form = document.createElement('form');
     form.classList.add('edit-client__form');
+    form.noValidate = true;
     form.append(createFormTextInput({id: 'lastName', label: 'Фамилия', required: true, classToAdd: 'edit-client__lastName'}));
     form.append(createFormTextInput({id: 'firstName', label: 'Имя', required: true}));
     form.append(createFormTextInput({id: 'middleName', label: 'Отчество', classToAdd: 'edit-client__middleName'}));
@@ -243,15 +270,51 @@
     })
     form.append(cancelButton);
 
+    form.addEventListener('submit', async function (event) {
+      event.preventDefault()
+      resetValidationResult(this);
+      const isFormValid = this.checkValidity();
+      this.classList.add('form-group_validated');
+      if (!isFormValid) {
+        showValidationMessage(this, errorBlock);
+        event.stopPropagation();
+      } else {
+        const formData = new FormData(this);
+        onSave(modal, formData);
+      }
+    })
+
     content.append(form);
   }
 
   document.addEventListener("DOMContentLoaded", function (event) {
     const handlers = {
-      onSave(modalElement) {
+      async onSave(modalElement, formData) {
+        const request = {
+          name: formData.get('firstName'),
+          surname: formData.get('middleName'),
+          lastName: formData.get('lastName')
+        }
+        const contacts = [];
+        for (let i = 0; i < formData.getAll('contactType').length; i++) {
+          contacts.push({
+            type: formData.getAll('contactType')[i],
+            value: formData.getAll('contactValue')[i]
+          })
+        }
+        if (contacts.length > 0) {
+          request.contacts = contacts;
+        }
+        const response = await fetch('http://localhost:3000/api/clients', {
+          method: 'POST',
+          body: JSON.stringify(request),
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
         modalElement.remove();
       },
-      onClose(modalElement) {
+      async onClose(modalElement) {
         modalElement.remove();
       }
     }
