@@ -32,6 +32,11 @@
     padding: 0 10px;
   }
 
+  .modal__btn-close {
+    right: 3px;
+    top: 3px;
+  }
+
   .header {
     padding: 8px 0;
   }
@@ -62,5 +67,13 @@
 
   .loading__spinner {
     left: calc(50vw - var(--spinner-size) / 2);
+  }
+
+  .edit-client {
+    --side-padding: 15px;
+  }
+
+  .edit-client__contact-type {
+    width: 110px;
   }
 }

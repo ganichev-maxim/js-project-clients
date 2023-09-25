@@ -415,24 +415,14 @@
     return text;
   }
 
-  function renderClientItem (client, {onEdit, onDelete}) {
-    const clientElement = document.createElement('div');
-    clientElement.classList.add('clients__table-row', 'clients__table-data-row');
-
-    const clientIdElement = createDataCell();
-    clientIdElement.innerHTML = client.id;
-    clientElement.append(clientIdElement);
-
-    const clientNameElement = createDataCell();
-    clientNameElement.innerHTML = client.fullName;
-    clientElement.append(clientNameElement);
-
-    clientElement.append(createDateDataCell(client.createdAt));
-    clientElement.append(createDateDataCell(client.updatedAt));
-
+  function showContactsBlock(contacts, short = true) {
     const contactsBlockElement = createDataCell();
-    clientElement.append(contactsBlockElement);
-    for (const contact of client.contacts) {
+    const maxItems = short ? 4 : contacts.length;
+    let currentCount = 0;
+    for (const contact of contacts) {
+      if (currentCount >= maxItems) {
+        break;
+      }
       const contactElement = document.createElement('div');
       contactElement.classList.add('clients__contact', 'tooltip');
       contactElement.innerHTML = getContactIcon(contact.type);
@@ -451,7 +441,42 @@
       tooltipElement.append(contact.value);
 
       contactsBlockElement.append(contactElement);
+      currentCount++;
     }
+    const itemsLeftCount = contacts.length - currentCount;
+    if (itemsLeftCount > 0 && short) {
+      const moreElement = document.createElement('div');
+      moreElement.classList.add('clients__contact', 'clients__contact-more', 'btn');
+      moreElement.innerHTML = '+' + itemsLeftCount;
+      moreElement.addEventListener('click', function (event) {
+        contactsBlockElement.innerHTML = '';
+        const allContactsElementBlock = showContactsBlock(contacts, false);
+        for (let i = 0; i < allContactsElementBlock.children.length; i++) {
+          const element = allContactsElementBlock.children[i];
+          contactsBlockElement.append(element.cloneNode(true));
+        }
+      });
+      contactsBlockElement.append(moreElement);
+    }
+    return contactsBlockElement;
+  }
+
+  function renderClientItem (client, {onEdit, onDelete}) {
+    const clientElement = document.createElement('div');
+    clientElement.classList.add('clients__table-row', 'clients__table-data-row');
+
+    const clientIdElement = createDataCell();
+    clientIdElement.innerHTML = client.id;
+    clientElement.append(clientIdElement);
+
+    const clientNameElement = createDataCell();
+    clientNameElement.innerHTML = client.fullName;
+    clientElement.append(clientNameElement);
+
+    clientElement.append(createDateDataCell(client.createdAt));
+    clientElement.append(createDateDataCell(client.updatedAt));
+
+    clientElement.append(showContactsBlock(client.contacts));
 
     const buttonGroupElement = createDataCell();
     const changeButton = document.createElement('button');

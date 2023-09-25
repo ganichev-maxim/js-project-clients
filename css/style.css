@@ -588,6 +588,7 @@ body {
   display: flex;
   flex-wrap: wrap;
   gap: 7px;
+  padding-right: 9px;
 }
 
 .clients__table-data-cell:nth-child(6) {
@@ -824,6 +825,7 @@ body {
 .edit-client__contact-value {
   flex-basis: 100%;
   padding: 8px 12px;
+  min-width: 130px;
   border: 1px solid var(--grey, #C8C5D1);
   font-size: 14px;
   font-weight: 600;
