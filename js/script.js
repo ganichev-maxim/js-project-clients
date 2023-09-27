@@ -3,7 +3,7 @@
   let clients;
   let sortProperty;
   let sortAsc = true;
-  function createModal(onClose) {
+  function createModal() {
     const modalElement = document.createElement('div');
     modalElement.classList.add('overlay');
     const contentContainer = document.createElement('div');
@@ -11,7 +11,7 @@
     const closeWindow = document.createElement('button');
     closeWindow.classList.add('modal__btn-close', 'btn');
     closeWindow.addEventListener('click', function (event) {
-      onClose(modalElement);
+      modalElement.remove();
     })
     contentContainer.append(closeWindow);
     modalElement.append(contentContainer);
@@ -109,7 +109,7 @@
     }
   }
 
-  function createFormTextInput({id, label, required, classToAdd}) {
+  function createFormTextInput({id, label, required, classToAdd, value}) {
     const formGroup = document.createElement('div');
     formGroup.classList.add('form-group');
     if (classToAdd) {
@@ -125,6 +125,10 @@
     inputElement.addEventListener('focusout', function (event) {
       this.classList.toggle('has-value', this.value);
     })
+    if (value) {
+      inputElement.value = value;
+      inputElement.classList.add('has-value');
+    }
     formGroup.append(inputElement);
 
     const labelElement = document.createElement('label');
@@ -142,7 +146,7 @@
     return optionElement;
   }
 
-  function createContractTypeSelect() {
+  function createContractTypeSelect(value) {
     const selectContainer = document.createElement('div');
     selectContainer.classList.add('edit-client__contact-type', 'custom-select');
     const contactType = document.createElement('select');
@@ -153,34 +157,40 @@
     contactType.append(createOption('facebook', 'Facebook'));
     contactType.append(createOption('vk', 'Vk'));
     contactType.append(createOption('other', 'Другое'));
+    if (value) {
+      contactType.value = value;
+    }
     transformToCustomSelect(selectContainer);
     return selectContainer;
   }
 
-  function createContactLine() {
+  function createContactLine(contact) {
     const contactLine = document.createElement('li');
-      contactLine.classList.add('edit-client__contacts-item');
-      const contactType = createContractTypeSelect();
-      contactLine.append(contactType);
-      const contactValue = document.createElement('input');
-      contactValue.classList.add('edit-client__contact-value');
-      contactValue.placeholder = 'Введите данные контакта';
-      contactValue.name = 'contactValue';
-      contactLine.append(contactValue);
-      const deleteButton = document.createElement('button');
-      deleteButton.classList.add('btn', 'edit-client__contact-delete', 'tooltip');
-      deleteButton.type = 'button';
-      const deleteImg = document.createElement('div');
-      deleteImg.classList.add('close-sign');
-      deleteButton.append(deleteImg);
-      const tooltipText = document.createElement('div');
-      tooltipText.classList.add('tooltip__text');
-      tooltipText.innerHTML = 'Удалить контакт';
-      deleteButton.addEventListener('click', function (event) {
-        contactLine.remove();
-      })
-      deleteButton.append(tooltipText);
-      contactLine.append(deleteButton);
+    contactLine.classList.add('edit-client__contacts-item');
+    const contactType = createContractTypeSelect(contact ? contact.type : null);
+    contactLine.append(contactType);
+    const contactValue = document.createElement('input');
+    contactValue.classList.add('edit-client__contact-value');
+    contactValue.placeholder = 'Введите данные контакта';
+    contactValue.name = 'contactValue';
+    if (contact) {
+      contactValue.value = contact.value;
+    }
+    contactLine.append(contactValue);
+    const deleteButton = document.createElement('button');
+    deleteButton.classList.add('btn', 'edit-client__contact-delete', 'tooltip');
+    deleteButton.type = 'button';
+    const deleteImg = document.createElement('div');
+    deleteImg.classList.add('close-sign');
+    deleteButton.append(deleteImg);
+    const tooltipText = document.createElement('div');
+    tooltipText.classList.add('tooltip__text');
+    tooltipText.innerHTML = 'Удалить контакт';
+    deleteButton.addEventListener('click', function (event) {
+      contactLine.remove();
+    })
+    deleteButton.append(tooltipText);
+    contactLine.append(deleteButton);
     return contactLine;
   }
 
@@ -200,15 +210,15 @@
     addButton.classList.add('edit-client__btn-add', 'btn', 'btn-simple');
     addButton.innerText = 'Добавить контакт';
     addButton.type = 'button';
-    addButton.addEventListener('click', function (event) {
-      const contactsListId = 'contactsList'
-      let contactsList = document.getElementById(contactsListId);
-      if (!contactsList) {
-        contactsList = document.createElement('ul');
-        contactsList.id = contactsListId;
-        contactsList.classList.add('edit-client__contacts-list');
-        contactsElement.prepend(contactsList);
+    let contactsList = document.createElement('ul');
+    contactsList.classList.add('edit-client__contacts-list');
+    contactsElement.prepend(contactsList);
+    if (client) {
+      for (const contact of client.contacts) {
+        contactsList.append(createContactLine(contact));
       }
+    }
+    addButton.addEventListener('click', function (event) {
       contactsList.append(createContactLine());
     })
     buttonWithIcon.append(addButton)
@@ -240,8 +250,8 @@
     validationResults.style.display = 'block';
   }
 
-  function openEditClientPopup({onSave, onClose}, client) {
-    const modal = createModal(onClose);
+  function openEditClientPopup({onSave, onDelete}, client) {
+    const modal = createModal();
     const content = document.createElement('div');
     content.classList.add('edit-client');
     modal.contentContainer.append(content);
@@ -250,13 +260,19 @@
     title.classList.add('modal__title', 'edit-client__title');
     title.innerText = client ? 'Изменить данные' : 'Новый клиент';
     content.append(title);
+    if (client) {
+      const clientIdElement = document.createElement('span');
+      clientIdElement.classList.add('edit-client__id');
+      clientIdElement.innerText = `ID: ${client.id}`;
+      title.append(clientIdElement);
+    }
 
     const form = document.createElement('form');
     form.classList.add('edit-client__form');
     form.noValidate = true;
-    form.append(createFormTextInput({id: 'lastName', label: 'Фамилия', required: true, classToAdd: 'edit-client__lastName'}));
-    form.append(createFormTextInput({id: 'firstName', label: 'Имя', required: true}));
-    form.append(createFormTextInput({id: 'middleName', label: 'Отчество', classToAdd: 'edit-client__middleName'}));
+    form.append(createFormTextInput({id: 'lastName', label: 'Фамилия', required: true, classToAdd: 'edit-client__lastName', value: client ? client.lastName : null}));
+    form.append(createFormTextInput({id: 'firstName', label: 'Имя', required: true, value: client ? client.name : null}));
+    form.append(createFormTextInput({id: 'middleName', label: 'Отчество', classToAdd: 'edit-client__middleName', value: client ? client.surname : null}));
     form.append(createContactsBlock(client));
 
     const errorBlock = document.createElement('p');
@@ -264,18 +280,26 @@
     form.append(errorBlock);
 
     const saveButton = document.createElement('button')
-    saveButton.classList.add('edit-client__btn-save', 'btn', 'btn-primary');
+    saveButton.classList.add('modal__btn-primary', 'btn', 'btn-primary');
     saveButton.innerText = 'Сохранить';
     saveButton.type = 'submit';
     form.append(saveButton);
 
     const cancelButton = document.createElement('button')
-    cancelButton.classList.add('edit-client__btn-cancel', 'btn', 'btn-simple');
-    cancelButton.innerText = 'Отмена';
+    cancelButton.classList.add('modal__btn-secondary', 'btn', 'btn-simple');
     cancelButton.type = 'button';
-    cancelButton.addEventListener('click', function (event) {
-      onClose(modal.modalElement);
-    })
+    if (!client) {
+      cancelButton.innerText = 'Отмена';
+      cancelButton.addEventListener('click', function (event) {
+        modal.modalElement.remove();
+      });
+    } else {
+      cancelButton.innerText = 'Удалить клиента';
+      cancelButton.addEventListener('click', function (event) {
+        onDelete(client.id);
+        modal.modalElement.remove();
+      });
+    }
     form.append(cancelButton);
 
     form.addEventListener('submit', async function (event) {
@@ -288,7 +312,8 @@
         event.stopPropagation();
       } else {
         const formData = new FormData(this);
-        onSave(modal.modalElement, formData);
+        onSave(formData, client ? client.id : null);
+        modal.modalElement.remove();
       }
     })
 
@@ -315,13 +340,11 @@
   function prepareForRender(clients) {
     let result = [];
     for (const client of clients) {
-      result.push({
-        id: client.id,
-        fullName: `${client.lastName} ${client.name} ${client.surname}`,
-        createdAt: new Date(client.createdAt),
-        updatedAt: new Date(client.updatedAt),
-        contacts: client.contacts
-      })
+      const clientCopy = {...client}
+      clientCopy.fullName = `${client.lastName} ${client.name} ${client.surname}`;
+      clientCopy.createdAt = new Date(client.createdAt);
+      clientCopy.updatedAt = new Date(client.updatedAt);
+      result.push(clientCopy);
     }
     return result;
   }
@@ -415,6 +438,35 @@
     return text;
   }
 
+  function collectClientDataForRequest(formData) {
+    const request = {
+      name: formData.get('firstName'),
+      surname: formData.get('middleName'),
+      lastName: formData.get('lastName')
+    }
+    const contacts = [];
+    for (let i = 0; i < formData.getAll('contactType').length; i++) {
+      contacts.push({
+        type: formData.getAll('contactType')[i],
+        value: formData.getAll('contactValue')[i]
+      })
+    }
+    if (contacts.length > 0) {
+      request.contacts = contacts;
+    }
+    return request;
+  }
+
+  function createChangeButton(client, {onSave, onDelete}) {
+    const changeButton = document.createElement('button');
+    changeButton.classList.add('clients__button', 'clients__change-button', 'btn', 'btn-simple');
+    changeButton.innerHTML = 'Изменить';
+    changeButton.addEventListener('click', function (event) {
+      openEditClientPopup({onSave, onDelete}, client);
+    })
+    return changeButton;
+  }
+
   function showContactsBlock(contacts, short = true) {
     const contactsBlockElement = createDataCell();
     const maxItems = short ? 4 : contacts.length;
@@ -461,7 +513,7 @@
     return contactsBlockElement;
   }
 
-  function renderClientItem (client, {onEdit, onDelete}) {
+  function renderClientItem (client, {onSave, onDelete}) {
     const clientElement = document.createElement('div');
     clientElement.classList.add('clients__table-row', 'clients__table-data-row');
 
@@ -475,29 +527,64 @@
 
     clientElement.append(createDateDataCell(client.createdAt));
     clientElement.append(createDateDataCell(client.updatedAt));
-
     clientElement.append(showContactsBlock(client.contacts));
 
     const buttonGroupElement = createDataCell();
-    const changeButton = document.createElement('button');
-    changeButton.classList.add('clients__button', 'clients__change-button', 'btn', 'btn-simple');
-    changeButton.innerHTML = 'Изменить';
-    buttonGroupElement.append(changeButton);
+    buttonGroupElement.append(createChangeButton(client, {onSave, onDelete}));
     const deleteButton = document.createElement('button');
     deleteButton.classList.add('clients__button', 'clients__delete-button', 'btn', 'btn-simple');
     deleteButton.innerHTML = 'Удалить';
+    deleteButton.addEventListener('click', function (event) {
+      onDelete(client.id);
+    })
     buttonGroupElement.append(deleteButton);
     clientElement.append(buttonGroupElement);
 
     return clientElement;
   }
 
-  function renderClientsTable(clients, {onEdit, onDelete}) {
+  function renderClientsTable(clients, {onSave, onDelete}) {
     const clientElements = []
     for (const client of clients) {
-      clientElements.push(renderClientItem(client, {onEdit, onDelete}))
+      clientElements.push(renderClientItem(client, {onSave, onDelete}))
     }
     return clientElements
+  }
+
+  function confirmDelete(onConfirm) {
+    const modal = createModal();
+    const content = document.createElement('div');
+    content.classList.add('delete-client');
+    modal.contentContainer.append(content);
+
+    const title = document.createElement('h1');
+    title.classList.add('modal__title', 'delete-client__title');
+    title.innerText = 'Удалить клиента';
+    content.append(title);
+
+    const confirmText = document.createElement('div');
+    confirmText.classList.add('delete-client__text');
+    confirmText.innerText = 'Вы действительно хотите удалить данного клиента?';
+    content.append(confirmText);
+
+    const deleteButton = document.createElement('button')
+    deleteButton.classList.add('modal__btn-primary', 'btn', 'btn-primary');
+    deleteButton.innerText = 'Удалить';
+    deleteButton.type = 'button';
+    deleteButton.addEventListener('click', function (event) {
+      onConfirm();
+      modal.modalElement.remove();
+    })
+    content.append(deleteButton);
+
+    const cancelButton = document.createElement('button')
+    cancelButton.classList.add('modal__btn-secondary', 'btn', 'btn-simple');
+    cancelButton.type = 'button';
+    cancelButton.innerText = 'Отмена';
+    cancelButton.addEventListener('click', function (event) {
+        modal.modalElement.remove();
+    });
+    content.append(cancelButton);
   }
 
   async function loadClientsTable() {
@@ -509,17 +596,33 @@
       clientsForView = sortData(studentsForView, sortProperty, sortAsc);
     }
 
-    const clientsItems = renderClientsTable(clientsForView, {
-      onEdit(client, clientElement) {
-
-      },
-      onDelete(client, clientElement) {
-        clientElement.remove();
-        fetch(`http://localhost:3000/api/clients/${client.id}`, {
-          method: 'DELETE'
+    const handlers = {
+      async onSave(formData, clientId) {
+        const request = collectClientDataForRequest(formData);
+        await fetch(`http://localhost:3000/api/clients/${clientId}`, {
+          method: 'PATCH',
+          body: JSON.stringify(request),
+          headers: {
+            'Content-Type': 'application/json'
+          }
         });
+        loadClientsTable();
+      },
+      async onDelete(clientId) {
+        const onConfirm = async function() {
+          await fetch(`http://localhost:3000/api/clients/${clientId}`, {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+          });
+          loadClientsTable();
+        }
+        confirmDelete(onConfirm);
       }
-    });
+    }
+
+    const clientsItems = renderClientsTable(clientsForView, handlers);
     loading.remove();
     if (clientsItems) {
       for (const clientElement of clientsItems) {
@@ -530,23 +633,9 @@
 
   document.addEventListener("DOMContentLoaded", function (event) {
     const handlers = {
-      async onSave(modalElement, formData) {
-        const request = {
-          name: formData.get('firstName'),
-          surname: formData.get('middleName'),
-          lastName: formData.get('lastName')
-        }
-        const contacts = [];
-        for (let i = 0; i < formData.getAll('contactType').length; i++) {
-          contacts.push({
-            type: formData.getAll('contactType')[i],
-            value: formData.getAll('contactValue')[i]
-          })
-        }
-        if (contacts.length > 0) {
-          request.contacts = contacts;
-        }
-        const response = await fetch('http://localhost:3000/api/clients', {
+      async onSave(formData, clientId) {
+        const request = collectClientDataForRequest(formData);
+        await fetch('http://localhost:3000/api/clients', {
           method: 'POST',
           body: JSON.stringify(request),
           headers: {
@@ -554,9 +643,7 @@
           }
         });
         modalElement.remove();
-      },
-      async onClose(modalElement) {
-        modalElement.remove();
+        loadClientsTable();
       }
     }
 

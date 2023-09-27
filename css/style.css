@@ -706,7 +706,17 @@ body {
 }
 
 .edit-client__title {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
   margin-bottom: 15px;
+}
+
+.edit-client__id {
+  align-self: flex-end;
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--txt_grey, #B0B0B0);
 }
 
 .edit-client__form {
@@ -786,13 +796,13 @@ body {
   text-align: center;
 }
 
-.edit-client__btn-save {
+.modal__btn-primary {
   align-self: center;
   margin-bottom: 5px;
   padding: 12.5px 35px;
 }
 
-.edit-client__btn-cancel {
+.modal__btn-secondary {
   align-self: center;
   font-size: 12px;
   text-decoration: underline;
@@ -874,4 +884,23 @@ body {
 .edit-client__contacts:has(.edit-client__contacts-item) {
   padding-top: 25px;
   padding-bottom: 25px;
+}
+
+.delete-client {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 22px 12px 27px;
+}
+
+.delete-client__title {
+  margin-bottom: 11px;
+}
+
+.delete-client__text {
+  margin-bottom: 25px;
+  max-width: 275px;
+  color: var(--black, #333);
+  text-align: center;
+  font-size: 14px;
 }
