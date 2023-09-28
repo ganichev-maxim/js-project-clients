@@ -28,19 +28,19 @@
 
           <div class="clients__table">
             <div class="clients__table-row clients__table-head">
-              <div class="clients__table-cell clients__table-header_sortable clients__table-header_sortable-desc">ID</div>
+              <div data-sort-prop="id" class="clients__table-cell clients__table-header_sortable clients__table-header_sortable-desc">ID</div>
 
-              <div class="clients__table-cell clients__table-header_sortable clients__table-header_sortable-str-asc">Фамилия Имя Отчество</div>
+              <div data-sort-prop="fullName" class="clients__table-cell clients__table-header_sortable clients__table-header_sortable-str clients__table-header_sortable-str-asc">Фамилия Имя Отчество</div>
 
-              <div class="clients__table-cell clients__table-header_sortable clients__table-header_sortable-asc">Дата и время создания</div>
+              <div data-sort-prop="createdAt" class="clients__table-cell clients__table-header_sortable clients__table-header_sortable-asc">Дата и время создания</div>
 
-              <div class="clients__table-cell clients__table-header_sortable clients__table-header_sortable-asc">Последние изменения</div>
+              <div data-sort-prop="updatedAt" class="clients__table-cell clients__table-header_sortable clients__table-header_sortable-asc">Последние изменения</div>
 
               <div class="clients__table-cell">Контакты</div>
 
               <div class="clients__table-cell">Действия</div>
             </div>
-            <div class="clients__table-body">
+            <div id = "dataContainer" class="clients__table-body">
               <div class="clients__table-row clients__table-data-row">
                 <div class="clients__table-cell clients__table-data-cell">123455</div>
 

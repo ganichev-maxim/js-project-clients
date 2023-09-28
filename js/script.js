@@ -1,7 +1,8 @@
 (function() {
+  let dataContainer;
   let filter;
-  let clients;
-  let sortProperty;
+  let clientsForView;
+  let sortProperty = 'id';
   let sortAsc = true;
   function createModal() {
     const modalElement = document.createElement('div');
@@ -333,11 +334,10 @@
 
   async function getFromServer(filter) {
     const response = await fetch('http://localhost:3000/api/clients' + (filter ? `?search=${filter}` : ''));
-    const clients = await response.json();
-    return clients
+    return await response.json();
   }
 
-  function prepareForRender(clients) {
+  function prepareForForView(clients) {
     let result = [];
     for (const client of clients) {
       const clientCopy = {...client}
@@ -543,7 +543,7 @@
     return clientElement;
   }
 
-  function renderClientsTable(clients, {onSave, onDelete}) {
+  function getClientsRows(clients, {onSave, onDelete}) {
     const clientElements = []
     for (const client of clients) {
       clientElements.push(renderClientItem(client, {onSave, onDelete}))
@@ -587,13 +587,36 @@
     content.append(cancelButton);
   }
 
-  async function loadClientsTable() {
-    const tableBody = document.getElementsByClassName('clients__table-body')[0];
-    const loading = showLoading(tableBody);
-    clients = await getFromServer(filter);
-    const clientsForView = prepareForRender(clients);
+  function renderSortIcon(columnHeader, sortAsc, ascClass, descClass) {
+    columnHeader.classList.toggle(ascClass, !!sortAsc);
+    columnHeader.classList.toggle(descClass, sortAsc !== null && !sortAsc);
+  }
+
+  function renderSortTableHeader(sortProperty, sortAsc) {
+    const sotrableHeaders = document.querySelectorAll('[data-sort-prop]');
+
+    for (const header of sotrableHeaders) {
+      const headerClassList = header.classList;
+      for(var i=headerClassList.length-1 ; i>=0;i--){
+        if (headerClassList[i].endsWith("-asc") || headerClassList[i].endsWith("-desc")){
+          headerClassList.remove(headerClassList[i]);
+        }
+      }
+    }
+    const columnHeader = document.querySelector(`[data-sort-prop = '${sortProperty}']`);
+    if (columnHeader && columnHeader.classList.contains('clients__table-header_sortable')) {
+      if (columnHeader.classList.contains('clients__table-header_sortable-str')) {
+        renderSortIcon(columnHeader, sortAsc, 'clients__table-header_sortable-str-asc', 'clients__table-header_sortable-str-desc');
+      } else {
+        renderSortIcon(columnHeader, sortAsc, 'clients__table-header_sortable-asc', 'clients__table-header_sortable-desc');
+      }
+    }
+  }
+
+  function buildTableRows(clients) {
     if (sortProperty) {
-      clientsForView = sortData(studentsForView, sortProperty, sortAsc);
+      clients = sortData(clients, sortProperty, sortAsc);
+      renderSortTableHeader(sortProperty, sortAsc);
     }
 
     const handlers = {
@@ -622,16 +645,29 @@
       }
     }
 
-    const clientsItems = renderClientsTable(clientsForView, handlers);
-    loading.remove();
-    if (clientsItems) {
-      for (const clientElement of clientsItems) {
+    return getClientsRows(clientsForView, handlers);
+  }
+
+  function fillTableBody(tableBody, items) {
+    tableBody.innerHTML = '';
+    if (items) {
+      for (const clientElement of items) {
         tableBody.append(clientElement);
       }
     }
   }
 
+  async function loadClientsTable() {
+    const loading = showLoading(dataContainer);
+    const clients = await getFromServer(filter);
+    clientsForView = prepareForForView(clients);
+    const clientsItems = buildTableRows(clientsForView);
+    loading.remove();
+    fillTableBody(dataContainer, clientsItems);
+  }
+
   document.addEventListener("DOMContentLoaded", function (event) {
+    dataContainer = document.getElementById("dataContainer");
     const handlers = {
       async onSave(formData, clientId) {
         const request = collectClientDataForRequest(formData);
@@ -652,6 +688,22 @@
     });
 
     loadClientsTable();
+
+    document.querySelectorAll('[data-sort-prop]').forEach(header => header.addEventListener('click', function (event) {
+      if (this.dataset.sortProp === sortProperty) {
+        if (sortAsc === null) {
+          sortAsc = true
+        } else if (sortAsc) {
+          sortAsc = false;
+        } else {
+          sortAsc = null;
+        }
+      } else {
+        sortAsc = true;
+        sortProperty = this.dataset.sortProp;
+      }
+      fillTableBody(dataContainer, buildTableRows(clientsForView));
+    }));
 
     document.addEventListener("click", closeAllSelect);
   })
