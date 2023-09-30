@@ -767,15 +767,6 @@ body {
   font-weight: 600;
 }
 
-.edit-client__btn-add::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 0;
-  height: 100%;
-  width: 100%;
-}
-
 .edit-client__btn-add-group:has(.edit-client__btn-add:hover) .edit-client__btn-add-icon_action,
 .edit-client__btn-add-group:has(.edit-client__btn-add:focus) .edit-client__btn-add-icon_action,
 .edit-client__btn-add-group:has(.edit-client__btn-add:active) .edit-client__btn-add-icon_action {
@@ -797,9 +788,24 @@ body {
 }
 
 .modal__btn-primary {
+  display: flex;
+  align-items: center;
+  position: relative;
   align-self: center;
   margin-bottom: 5px;
   padding: 12.5px 35px;
+}
+
+.btn__spinner {
+  --spinner-size: 12px;
+  display: inline-block;
+  margin-right: 8px;
+  width: var(--spinner-size);
+  height: var(--spinner-size);
+  border: 2px solid #B89EFF;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: loading__spinner .75s linear infinite;
 }
 
 .modal__btn-secondary {

@@ -165,7 +165,7 @@
     return selectContainer;
   }
 
-  function createContactLine(contact) {
+  function createContactLine({onDelete}, contact) {
     const contactLine = document.createElement('li');
     contactLine.classList.add('edit-client__contacts-item');
     const contactType = createContractTypeSelect(contact ? contact.type : null);
@@ -189,6 +189,7 @@
     tooltipText.innerHTML = 'Удалить контакт';
     deleteButton.addEventListener('click', function (event) {
       contactLine.remove();
+      onDelete();
     })
     deleteButton.append(tooltipText);
     contactLine.append(deleteButton);
@@ -207,20 +208,31 @@
                     </g>
                   </svg>`;
     buttonWithIcon.innerHTML = icon;
+
     const addButton = document.createElement('button');
     addButton.classList.add('edit-client__btn-add', 'btn', 'btn-simple');
     addButton.innerText = 'Добавить контакт';
     addButton.type = 'button';
+
     let contactsList = document.createElement('ul');
     contactsList.classList.add('edit-client__contacts-list');
     contactsElement.prepend(contactsList);
-    if (client) {
-      for (const contact of client.contacts) {
-        contactsList.append(createContactLine(contact));
+    const showHideAddButton = function() {
+      if (contactsList.childElementCount >= 10) {
+        buttonWithIcon.style.display = 'none';
+      } else {
+        buttonWithIcon.style.display = '';
       }
     }
+    if (client) {
+      for (const contact of client.contacts) {
+        contactsList.append(createContactLine({onDelete: showHideAddButton}, contact));
+      }
+      showHideAddButton();
+    }
     addButton.addEventListener('click', function (event) {
-      contactsList.append(createContactLine());
+      contactsList.append(createContactLine({onDelete: showHideAddButton}));
+      showHideAddButton();
     })
     buttonWithIcon.append(addButton)
     contactsElement.append(buttonWithIcon);
@@ -312,9 +324,18 @@
         showValidationMessage(this, errorBlock);
         event.stopPropagation();
       } else {
+        const loadingSign = document.createElement('div');
+        loadingSign.classList.add('btn__spinner');
+        saveButton.prepend(loadingSign);
         const formData = new FormData(this);
-        onSave(formData, client ? client.id : null);
-        modal.modalElement.remove();
+        const errorText = await onSave(formData, client ? client.id : null);
+        if (errorText) {
+          errorBlock.innerText = errorText;
+          errorBlock.style.display = 'block';
+          loadingSign.remove();
+        } else {
+          modal.modalElement.remove();
+        }
       }
     })
 
@@ -457,11 +478,18 @@
     return request;
   }
 
-  function createChangeButton(client, {onSave, onDelete}) {
+  function createChangeButton(clientId, {onSave, onDelete}) {
     const changeButton = document.createElement('button');
     changeButton.classList.add('clients__button', 'clients__change-button', 'btn', 'btn-simple');
     changeButton.innerHTML = 'Изменить';
-    changeButton.addEventListener('click', function (event) {
+    changeButton.addEventListener('click', async function (event) {
+      const response = await fetch(`http://localhost:3000/api/clients/${clientId}`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
+      const client = await response.json();
       openEditClientPopup({onSave, onDelete}, client);
     })
     return changeButton;
@@ -530,7 +558,7 @@
     clientElement.append(showContactsBlock(client.contacts));
 
     const buttonGroupElement = createDataCell();
-    buttonGroupElement.append(createChangeButton(client, {onSave, onDelete}));
+    buttonGroupElement.append(createChangeButton(client.id, {onSave, onDelete}));
     const deleteButton = document.createElement('button');
     deleteButton.classList.add('clients__button', 'clients__delete-button', 'btn', 'btn-simple');
     deleteButton.innerHTML = 'Удалить';
@@ -613,6 +641,14 @@
     }
   }
 
+  function getMessageFromError(error) {
+    let message = error.message;
+    if (!message) {
+      message = 'Что-то пошло не так...';
+    }
+    return message;
+  }
+
   function buildTableRows(clients) {
     if (sortProperty) {
       clients = sortData(clients, sortProperty, sortAsc);
@@ -622,22 +658,27 @@
     const handlers = {
       async onSave(formData, clientId) {
         const request = collectClientDataForRequest(formData);
-        await fetch(`http://localhost:3000/api/clients/${clientId}`, {
-          method: 'PATCH',
-          body: JSON.stringify(request),
-          headers: {
-            'Content-Type': 'application/json'
-          }
-        });
-        loadClientsTable();
+        try {
+          await fetch(`http://localhost:3000/api/clients/${clientId}`, {
+            method: 'PATCH',
+            body: JSON.stringify(request),
+            headers: {
+              'Content-Type': 'application/json'
+            }
+          });
+          loadClientsTable();
+        }
+        catch (error) {
+          return getMessageFromError(error);
+        }
       },
       async onDelete(clientId) {
         const onConfirm = async function() {
           await fetch(`http://localhost:3000/api/clients/${clientId}`, {
-          method: 'DELETE',
-          headers: {
-            'Content-Type': 'application/json'
-          }
+            method: 'DELETE',
+            headers: {
+              'Content-Type': 'application/json'
+            }
           });
           loadClientsTable();
         }
@@ -671,15 +712,19 @@
     const handlers = {
       async onSave(formData, clientId) {
         const request = collectClientDataForRequest(formData);
-        await fetch('http://localhost:3000/api/clients', {
-          method: 'POST',
-          body: JSON.stringify(request),
-          headers: {
-            'Content-Type': 'application/json'
-          }
-        });
-        modalElement.remove();
-        loadClientsTable();
+        try {
+          await fetch('http://localhost:3000/api/clients', {
+            method: 'POST',
+            body: JSON.stringify(request),
+            headers: {
+              'Content-Type': 'application/json'
+            }
+          });
+          loadClientsTable();
+        }
+        catch (error) {
+          return getMessageFromError(error);
+        }
       }
     }
 
@@ -691,19 +736,22 @@
 
     document.querySelectorAll('[data-sort-prop]').forEach(header => header.addEventListener('click', function (event) {
       if (this.dataset.sortProp === sortProperty) {
-        if (sortAsc === null) {
-          sortAsc = true
-        } else if (sortAsc) {
-          sortAsc = false;
-        } else {
-          sortAsc = null;
-        }
+        sortAsc = !sortAsc;
       } else {
         sortAsc = true;
         sortProperty = this.dataset.sortProp;
       }
       fillTableBody(dataContainer, buildTableRows(clientsForView));
     }));
+
+    var searchTimer;
+    document.getElementById('searchFilter').addEventListener('input', function (event) {
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(() => {
+        filter = this.value;
+        loadClientsTable();
+      }, 300);
+    })
 
     document.addEventListener("click", closeAllSelect);
   })
