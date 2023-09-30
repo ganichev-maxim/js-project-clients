@@ -184,8 +184,22 @@ body {
   min-height: 100px;
   max-width: 450px;
   width: calc(100vw - 20px);
-  background-color: white;
   transform: translate(-50%,-50%);
+}
+
+.modal__content {
+  background-color: white;
+}
+
+.md-slide-in .modal__content {
+	opacity: 0;
+  transform: translateY(20%);
+  transition: all 0.3s;
+}
+
+.md-show.md-slide-in .modal__content {
+  transform: translateY(0);
+	opacity: 1;
 }
 
 .modal__btn-close {

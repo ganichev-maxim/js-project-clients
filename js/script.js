@@ -4,24 +4,29 @@
   let clientsForView;
   let sortProperty = 'id';
   let sortAsc = true;
+
   function createModal() {
-    const modalElement = document.createElement('div');
-    modalElement.classList.add('overlay');
-    modalElement.addEventListener('click', function (event) {
+    const overlayElement = document.createElement('div');
+    overlayElement.classList.add('overlay');
+    overlayElement.addEventListener('click', function (event) {
       if (event.target !== this) return;
       this.remove();
     })
-    const contentContainer = document.createElement('div');
-    contentContainer.classList.add('modal');
+    const modalElement = document.createElement('div');
+    modalElement.classList.add('modal');
     const closeWindow = document.createElement('button');
     closeWindow.classList.add('modal__btn-close', 'btn');
     closeWindow.addEventListener('click', function (event) {
-      modalElement.remove();
+      overlayElement.remove();
     })
-    contentContainer.append(closeWindow);
-    modalElement.append(contentContainer);
-    document.body.append(modalElement);
-    return {contentContainer, modalElement};
+    //modelElement.append(closeWindow);
+    const modalContent = document.createElement('div');
+    modalContent.classList.add('modal__content');
+    modalContent.append(closeWindow);
+    modalElement.append (modalContent);
+    overlayElement.append(modalElement);
+    document.body.append(overlayElement);
+    return {contentContainer : modalContent, overlayElement, modalElement};
   }
 
   function transformToCustomSelect(selectContainer) {
@@ -308,13 +313,13 @@
     if (!client) {
       cancelButton.innerText = 'Отмена';
       cancelButton.addEventListener('click', function (event) {
-        modal.modalElement.remove();
+        modal.overlayElement.remove();
       });
     } else {
       cancelButton.innerText = 'Удалить клиента';
       cancelButton.addEventListener('click', function (event) {
         onDelete(client.id);
-        modal.modalElement.remove();
+        modal.overlayElement.remove();
       });
     }
     form.append(cancelButton);
@@ -338,12 +343,13 @@
           errorBlock.style.display = 'block';
           loadingSign.remove();
         } else {
-          modal.modalElement.remove();
+          modal.overlayElement.remove();
         }
       }
     })
 
     content.append(form);
+    addModalAnimation(modal.modalElement);
   }
 
   function showLoading(container) {
@@ -605,7 +611,7 @@
     deleteButton.type = 'button';
     deleteButton.addEventListener('click', function (event) {
       onConfirm();
-      modal.modalElement.remove();
+      modal.overlayElement.remove();
     })
     content.append(deleteButton);
 
@@ -614,9 +620,17 @@
     cancelButton.type = 'button';
     cancelButton.innerText = 'Отмена';
     cancelButton.addEventListener('click', function (event) {
-        modal.modalElement.remove();
+        modal.overlayElement.remove();
     });
     content.append(cancelButton);
+    addModalAnimation(modal.modalElement);
+  }
+
+  function addModalAnimation(modalElement) {
+    modalElement.classList.add('md-slide-in');
+    setTimeout(() => {
+      modalElement.classList.add('md-show');
+    }, 100);
   }
 
   function renderSortIcon(columnHeader, sortAsc, ascClass, descClass) {
