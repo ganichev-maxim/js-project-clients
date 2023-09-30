@@ -489,7 +489,9 @@
   }
 
   function createChangeButton(clientId, {onSave, onDelete}) {
-    const changeButton = document.createElement('button');
+    const changeButton = document.createElement('a');
+    const hash = `user${clientId}`;
+    changeButton.href = `#${hash}`;
     changeButton.classList.add('clients__button', 'clients__change-button', 'btn', 'btn-simple');
     changeButton.innerHTML = 'Изменить';
     changeButton.addEventListener('click', async function (event) {
@@ -501,7 +503,7 @@
         });
       const client = await response.json();
       openEditClientPopup({onSave, onDelete}, client);
-    })
+    });
     return changeButton;
   }
 
@@ -725,7 +727,7 @@
     fillTableBody(dataContainer, clientsItems);
   }
 
-  document.addEventListener("DOMContentLoaded", function (event) {
+  document.addEventListener("DOMContentLoaded", async function (event) {
     dataContainer = document.getElementById("dataContainer");
     const handlers = {
       async onSave(formData, clientId) {
@@ -750,8 +752,6 @@
       openEditClientPopup(handlers);
     });
 
-    loadClientsTable();
-
     document.querySelectorAll('[data-sort-prop]').forEach(header => header.addEventListener('click', function (event) {
       if (this.dataset.sortProp === sortProperty) {
         sortAsc = !sortAsc;
@@ -772,5 +772,26 @@
     })
 
     document.addEventListener("click", closeAllSelect);
-  })
+
+    window.addEventListener('hashchange', function (event) {
+      openModalByHash();
+    });
+
+    await loadClientsTable();
+    openModalByHash();
+
+  });
+
+  function openModalByHash() {
+    if (this.location.hash) {
+      let target = this.document.querySelector(`[href = '${this.location.hash}']`);
+      if (target) {
+        const anotherModal = document.querySelector('.overlay');
+        if (anotherModal) {
+          anotherModal.remove();
+        }
+        target.click();
+      }
+    }
+  }
 })();
