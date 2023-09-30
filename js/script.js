@@ -7,6 +7,10 @@
   function createModal() {
     const modalElement = document.createElement('div');
     modalElement.classList.add('overlay');
+    modalElement.addEventListener('click', function (event) {
+      if (event.target !== this) return;
+      this.remove();
+    })
     const contentContainer = document.createElement('div');
     contentContainer.classList.add('modal');
     const closeWindow = document.createElement('button');
