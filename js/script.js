@@ -1,10 +1,216 @@
 (function() {
+  //содержимое таблицы
   let dataContainer;
+  //Значение поискового фильтра
   let filter;
+  //Данные для отображения в таблице
   let clientsForView;
+  //Поле для сортировки
   let sortProperty = 'id';
+  //Направление сортировки
   let sortAsc = true;
 
+  document.addEventListener("DOMContentLoaded", async function (event) {
+    dataContainer = document.getElementById("dataContainer");
+    //Кнопка для добавления нового клиента
+    const handlers = {
+      async onSave(formData, clientId) {
+        const request = collectClientDataForRequest(formData);
+        try {
+          await fetch('http://localhost:3000/api/clients', {
+            method: 'POST',
+            body: JSON.stringify(request),
+            headers: {
+              'Content-Type': 'application/json'
+            }
+          });
+          loadClientsTable();
+        }
+        catch (error) {
+          return getMessageFromError(error);
+        }
+      }
+    }
+    document.getElementById("addClientButton").addEventListener ("click", function (event) {
+      openEditClientPopup(handlers);
+    });
+    //Сортировка данных
+    document.querySelectorAll('[data-sort-prop]').forEach(header => header.addEventListener('click', function (event) {
+      if (this.dataset.sortProp === sortProperty) {
+        sortAsc = !sortAsc;
+      } else {
+        sortAsc = true;
+        sortProperty = this.dataset.sortProp;
+      }
+      fillTableBody(dataContainer, buildTableRows(clientsForView));
+    }));
+    //Поиск
+    var searchTimer;
+    document.getElementById('searchFilter').addEventListener('input', function (event) {
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(() => {
+        filter = this.value;
+        loadClientsTable();
+      }, 300);
+    })
+    //Закрытие кастомных селектов
+    document.addEventListener("click", closeAllSelect);
+    //Открытие карточки изменения клиента при изменении хеша
+    window.addEventListener('hashchange', function (event) {
+      openModalByHash();
+    });
+    //Обновление данных с сервера
+    await loadClientsTable();
+    //Открытие карточки изменения клиента при первичной загрузке страницы
+    openModalByHash();
+  });
+
+  //Трансформация данных формы в json
+  function collectClientDataForRequest(formData) {
+    const request = {
+      name: formData.get('firstName'),
+      surname: formData.get('middleName'),
+      lastName: formData.get('lastName')
+    }
+    const contacts = [];
+    for (let i = 0; i < formData.getAll('contactType').length; i++) {
+      contacts.push({
+        type: formData.getAll('contactType')[i],
+        value: formData.getAll('contactValue')[i]
+      })
+    }
+    if (contacts.length > 0) {
+      request.contacts = contacts;
+    }
+    return request;
+  }
+  //Обновление данных клиентов с сервера
+  async function loadClientsTable() {
+    const loading = showLoading(dataContainer);
+    const clients = await getFromServer(filter);
+    clientsForView = prepareForForView(clients);
+    const clientsItems = buildTableRows(clientsForView);
+    loading.remove();
+    fillTableBody(dataContainer, clientsItems);
+  }
+  //Значок загрузки при получении данных клиентов с сервера
+  function showLoading(container) {
+    container.innerHTML = '';
+    const loadingElement = document.createElement('div');
+    loadingElement.classList.add('loading');
+    container.append(loadingElement);
+    const loadingImg = document.createElement('div');
+    loadingImg.classList.add('loading__spinner');
+    loadingElement.append(loadingImg);
+    return loadingElement;
+  }
+  //Получение данных о клиентов с сервера
+  async function getFromServer(filter) {
+    const response = await fetch('http://localhost:3000/api/clients' + (filter ? `?search=${filter}` : ''));
+    return await response.json();
+  }
+  //Преобразование данных с сервера для отображения в таблице
+  function prepareForForView(clients) {
+    let result = [];
+    for (const client of clients) {
+      const clientCopy = {...client}
+      clientCopy.fullName = `${client.lastName} ${client.name} ${client.surname}`;
+      clientCopy.createdAt = new Date(client.createdAt);
+      clientCopy.updatedAt = new Date(client.updatedAt);
+      result.push(clientCopy);
+    }
+    return result;
+  }
+  //Получение текста ошибки
+  function getMessageFromError(error) {
+    let message = error.message;
+    if (!message) {
+      message = 'Что-то пошло не так...';
+    }
+    return message;
+  }
+  //Карточка редактирование клиента
+  function openEditClientPopup({onSave, onDelete}, client) {
+    const modal = createModal();
+    const content = document.createElement('div');
+    content.classList.add('edit-client');
+    modal.contentContainer.append(content);
+
+    const title = document.createElement('h1');
+    title.classList.add('modal__title', 'edit-client__title');
+    title.innerText = client ? 'Изменить данные' : 'Новый клиент';
+    content.append(title);
+    if (client) {
+      const clientIdElement = document.createElement('span');
+      clientIdElement.classList.add('edit-client__id');
+      clientIdElement.innerText = `ID: ${client.id}`;
+      title.append(clientIdElement);
+    }
+
+    const form = document.createElement('form');
+    form.classList.add('edit-client__form');
+    form.noValidate = true;
+    form.append(createFormTextInput({id: 'lastName', label: 'Фамилия', required: true, classToAdd: 'edit-client__lastName', value: client ? client.lastName : null}));
+    form.append(createFormTextInput({id: 'firstName', label: 'Имя', required: true, value: client ? client.name : null}));
+    form.append(createFormTextInput({id: 'middleName', label: 'Отчество', classToAdd: 'edit-client__middleName', value: client ? client.surname : null}));
+    form.append(createContactsBlock(client));
+
+    const errorBlock = document.createElement('p');
+    errorBlock.classList.add('edit-client__errors');
+    form.append(errorBlock);
+
+    const saveButton = document.createElement('button')
+    saveButton.classList.add('modal__btn-primary', 'btn', 'btn-primary');
+    saveButton.innerText = 'Сохранить';
+    saveButton.type = 'submit';
+    form.append(saveButton);
+
+    const cancelButton = document.createElement('button')
+    cancelButton.classList.add('modal__btn-secondary', 'btn', 'btn-simple');
+    cancelButton.type = 'button';
+    if (!client) {
+      cancelButton.innerText = 'Отмена';
+      cancelButton.addEventListener('click', function (event) {
+        modal.overlayElement.remove();
+      });
+    } else {
+      cancelButton.innerText = 'Удалить клиента';
+      cancelButton.addEventListener('click', function (event) {
+        onDelete(client.id);
+        modal.overlayElement.remove();
+      });
+    }
+    form.append(cancelButton);
+
+    form.addEventListener('submit', async function (event) {
+      event.preventDefault()
+      resetValidationResult(this);
+      const validationResult = validateAddForm(this);
+      const isFormValid = this.checkValidity();
+      this.classList.add('form-group_validated');
+      if (!isFormValid || validationResult) {
+        showValidationMessage(this, errorBlock, validationResult);
+        event.stopPropagation();
+      } else {
+        const loadingSign = document.createElement('div');
+        loadingSign.classList.add('btn__spinner');
+        saveButton.prepend(loadingSign);
+        const formData = new FormData(this);
+        const errorText = await onSave(formData, client ? client.id : null);
+        if (errorText) {
+          errorBlock.innerText = errorText;
+          errorBlock.style.display = 'block';
+          loadingSign.remove();
+        } else {
+          modal.overlayElement.remove();
+        }
+      }
+    })
+
+    content.append(form);
+    addModalAnimation(modal.modalElement);
+  }
+  //Создание шаблона для модального окна
   function createModal() {
     const overlayElement = document.createElement('div');
     overlayElement.classList.add('overlay');
@@ -28,7 +234,277 @@
     document.body.append(overlayElement);
     return {contentContainer : modalContent, overlayElement, modalElement};
   }
+  //Создание поля для ввода
+  function createFormTextInput({id, label, required, classToAdd, value}) {
+    const formGroup = document.createElement('div');
+    formGroup.classList.add('form-group');
+    if (classToAdd) {
+      formGroup.classList.add(classToAdd);
+    }
 
+    const inputElement = document.createElement('input');
+    inputElement.classList.add('form-group__input');
+    inputElement.id = id;
+    inputElement.name = id;
+    inputElement.type = 'text';
+    inputElement.required = !!required;
+    inputElement.addEventListener('focusout', function (event) {
+      this.classList.toggle('has-value', this.value);
+    })
+    if (value) {
+      inputElement.value = value;
+      inputElement.classList.add('has-value');
+    }
+    formGroup.append(inputElement);
+
+    const labelElement = document.createElement('label');
+    labelElement.classList.add('form-group__label')
+    labelElement.htmlFor = id;
+    labelElement.innerText = label
+    formGroup.append(labelElement);
+    return formGroup;
+  }
+  //Блок для ввода контактов клиента
+  function createContactsBlock(client) {
+    const contactsElement = document.createElement('div');
+    contactsElement.classList.add('edit-client__contacts');
+    const buttonWithIcon = document.createElement('div');
+    buttonWithIcon.classList.add('edit-client__btn-add-group');
+    const icon = `<svg class="edit-client__btn-add-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                    <g clip-path="url(#clip0_224_8628)">
+                      <path class="edit-client__btn-add-icon_defult" d="M7.99998 4.66659C7.63331 4.66659 7.33331 4.96659 7.33331 5.33325V7.33325H5.33331C4.96665 7.33325 4.66665 7.63325 4.66665 7.99992C4.66665 8.36659 4.96665 8.66659 5.33331 8.66659H7.33331V10.6666C7.33331 11.0333 7.63331 11.3333 7.99998 11.3333C8.36665 11.3333 8.66665 11.0333 8.66665 10.6666V8.66659H10.6666C11.0333 8.66659 11.3333 8.36659 11.3333 7.99992C11.3333 7.63325 11.0333 7.33325 10.6666 7.33325H8.66665V5.33325C8.66665 4.96659 8.36665 4.66659 7.99998 4.66659ZM7.99998 1.33325C4.31998 1.33325 1.33331 4.31992 1.33331 7.99992C1.33331 11.6799 4.31998 14.6666 7.99998 14.6666C11.68 14.6666 14.6666 11.6799 14.6666 7.99992C14.6666 4.31992 11.68 1.33325 7.99998 1.33325ZM7.99998 13.3333C5.05998 13.3333 2.66665 10.9399 2.66665 7.99992C2.66665 5.05992 5.05998 2.66659 7.99998 2.66659C10.94 2.66659 13.3333 5.05992 13.3333 7.99992C13.3333 10.9399 10.94 13.3333 7.99998 13.3333Z" fill="#9873FF"/>
+                      <path class="edit-client__btn-add-icon_action" fill-rule="evenodd" clip-rule="evenodd" d="M1.33331 8.00016C1.33331 4.32016 4.31998 1.3335 7.99998 1.3335C11.68 1.3335 14.6666 4.32016 14.6666 8.00016C14.6666 11.6802 11.68 14.6668 7.99998 14.6668C4.31998 14.6668 1.33331 11.6802 1.33331 8.00016ZM7.33329 5.33366C7.33329 4.96699 7.63329 4.66699 7.99996 4.66699C8.36663 4.66699 8.66663 4.96699 8.66663 5.33366V7.33366H10.6666C11.0333 7.33366 11.3333 7.63366 11.3333 8.00033C11.3333 8.36699 11.0333 8.66699 10.6666 8.66699H8.66663V10.667C8.66663 11.0337 8.36663 11.3337 7.99996 11.3337C7.63329 11.3337 7.33329 11.0337 7.33329 10.667V8.66699H5.33329C4.96663 8.66699 4.66663 8.36699 4.66663 8.00033C4.66663 7.63366 4.96663 7.33366 5.33329 7.33366H7.33329V5.33366Z" fill="#9873FF"/>
+                    </g>
+                  </svg>`;
+    buttonWithIcon.innerHTML = icon;
+
+    const addButton = document.createElement('button');
+    addButton.classList.add('edit-client__btn-add', 'btn', 'btn-simple');
+    addButton.innerText = 'Добавить контакт';
+    addButton.type = 'button';
+
+    let contactsList = document.createElement('ul');
+    contactsList.classList.add('edit-client__contacts-list');
+    contactsElement.prepend(contactsList);
+    const showHideAddButton = function() {
+      if (contactsList.childElementCount >= 10) {
+        buttonWithIcon.style.display = 'none';
+      } else {
+        buttonWithIcon.style.display = '';
+      }
+    }
+    if (client) {
+      for (const contact of client.contacts) {
+        contactsList.append(createContactLine({onDelete: showHideAddButton}, contact));
+      }
+      showHideAddButton();
+    }
+    addButton.addEventListener('click', function (event) {
+      contactsList.append(createContactLine({onDelete: showHideAddButton}));
+      showHideAddButton();
+    })
+    buttonWithIcon.append(addButton)
+    contactsElement.append(buttonWithIcon);
+    return contactsElement;
+  }
+  //Сброс данных о валидации формы
+  function resetValidationResult(form) {
+    let inputs = form.querySelectorAll('input');
+    for (const input of inputs) {
+      input.setCustomValidity("");
+      input.classList.remove('invalid');
+    }
+  }
+
+  function validateAddForm(form) {
+    const contactsValueElements = form.querySelectorAll('.edit-client__contact-value');
+    let isValid = true;
+    for (const contactsValueElement of contactsValueElements) {
+      if (!contactsValueElement.value) {
+        contactsValueElement.classList.add('invalid');
+        isValid = false;
+      }
+    }
+    return isValid ? null : "Все контакты должны быть заполнены";
+  }
+
+  function showValidationMessage(form, errorBlock, validationResult) {
+    let errorText = 'Ошибка:\n';
+    const inputs = form.querySelectorAll('input');
+    for (const input of inputs) {
+      if (!input.validity.valid) {
+        const inputLabel = document.querySelector('label[for=\'' + input.id + '\']');
+        if (inputLabel) {
+          errorText += `${inputLabel.textContent}: ${input.validationMessage}\n`;
+        } else {
+          errorText += `${input.validationMessage}\n`;
+        }
+      }
+    }
+    errorBlock.innerText = errorText;
+    if (validationResult) {
+      errorBlock.append(validationResult);
+    }
+    errorBlock.style.display = 'block';
+  }
+  //Анимация всплывающего окна
+  function addModalAnimation(modalElement) {
+    modalElement.classList.add('md-slide-in');
+    setTimeout(() => {
+      modalElement.classList.add('md-show');
+    }, 100);
+  }
+  //Обновление таблицы переданными строками
+  function fillTableBody(tableBody, items) {
+    tableBody.innerHTML = '';
+    if (items) {
+      for (const clientElement of items) {
+        tableBody.append(clientElement);
+      }
+    }
+  }
+  //Подготовка для постоения строк таблицы
+  function buildTableRows(clients) {
+    if (sortProperty) {
+      clients = sortData(clients, sortProperty, sortAsc);
+      renderSortTableHeader(sortProperty, sortAsc);
+    }
+
+    const handlers = {
+      async onSave(formData, clientId) {
+        const request = collectClientDataForRequest(formData);
+        try {
+          await fetch(`http://localhost:3000/api/clients/${clientId}`, {
+            method: 'PATCH',
+            body: JSON.stringify(request),
+            headers: {
+              'Content-Type': 'application/json'
+            }
+          });
+          loadClientsTable();
+        }
+        catch (error) {
+          return getMessageFromError(error);
+        }
+      },
+      async onDelete(clientId) {
+        const onConfirm = async function() {
+          await fetch(`http://localhost:3000/api/clients/${clientId}`, {
+            method: 'DELETE',
+            headers: {
+              'Content-Type': 'application/json'
+            }
+          });
+          loadClientsTable();
+        }
+        confirmDelete(onConfirm);
+      }
+    }
+
+    return getClientsRows(clientsForView, handlers);
+  }
+  //сортировка
+  function sortData(data, prop, asc = true) {
+    return data.sort((s1, s2) => {
+      return (asc ? s1[prop] < s2[prop] : s1[prop] > s2[prop]) ? -1 : 1;
+    })
+  }
+  //Отображение столбцов сортировки
+  function renderSortTableHeader(sortProperty, sortAsc) {
+    const sotrableHeaders = document.querySelectorAll('[data-sort-prop]');
+
+    for (const header of sotrableHeaders) {
+      const headerClassList = header.classList;
+      for(var i=headerClassList.length-1 ; i>=0;i--){
+        if (headerClassList[i].endsWith("-asc") || headerClassList[i].endsWith("-desc")){
+          headerClassList.remove(headerClassList[i]);
+        }
+      }
+    }
+    const columnHeader = document.querySelector(`[data-sort-prop = '${sortProperty}']`);
+    if (columnHeader && columnHeader.classList.contains('clients__table-header_sortable')) {
+      if (columnHeader.classList.contains('clients__table-header_sortable-str')) {
+        renderSortIcon(columnHeader, sortAsc, 'clients__table-header_sortable-str-asc', 'clients__table-header_sortable-str-desc');
+      } else {
+        renderSortIcon(columnHeader, sortAsc, 'clients__table-header_sortable-asc', 'clients__table-header_sortable-desc');
+      }
+    }
+  }
+
+  function renderSortIcon(columnHeader, sortAsc, ascClass, descClass) {
+    columnHeader.classList.toggle(ascClass, !!sortAsc);
+    columnHeader.classList.toggle(descClass, sortAsc !== null && !sortAsc);
+  }
+
+  //Подтверждение удаления
+  function confirmDelete(onConfirm) {
+    const modal = createModal();
+    const content = document.createElement('div');
+    content.classList.add('delete-client');
+    modal.contentContainer.append(content);
+
+    const title = document.createElement('h1');
+    title.classList.add('modal__title', 'delete-client__title');
+    title.innerText = 'Удалить клиента';
+    content.append(title);
+
+    const confirmText = document.createElement('div');
+    confirmText.classList.add('delete-client__text');
+    confirmText.innerText = 'Вы действительно хотите удалить данного клиента?';
+    content.append(confirmText);
+
+    const deleteButton = document.createElement('button')
+    deleteButton.classList.add('modal__btn-primary', 'btn', 'btn-primary');
+    deleteButton.innerText = 'Удалить';
+    deleteButton.type = 'button';
+    deleteButton.addEventListener('click', function (event) {
+      onConfirm();
+      modal.overlayElement.remove();
+    })
+    content.append(deleteButton);
+
+    const cancelButton = document.createElement('button')
+    cancelButton.classList.add('modal__btn-secondary', 'btn', 'btn-simple');
+    cancelButton.type = 'button';
+    cancelButton.innerText = 'Отмена';
+    cancelButton.addEventListener('click', function (event) {
+        modal.overlayElement.remove();
+    });
+    content.append(cancelButton);
+    addModalAnimation(modal.modalElement);
+  }
+  //Открытие карточки клиента по hash
+  function openModalByHash() {
+    if (this.location.hash) {
+      let target = this.document.querySelector(`[href = '${this.location.hash}']`);
+      if (target) {
+        const anotherModal = document.querySelector('.overlay');
+        if (anotherModal) {
+          anotherModal.remove();
+        }
+        target.click();
+      }
+    }
+  }
+
+  function createContractTypeSelect(value) {
+    const selectContainer = document.createElement('div');
+    selectContainer.classList.add('edit-client__contact-type', 'custom-select');
+    const contactType = document.createElement('select');
+    contactType.name = 'contactType';
+    selectContainer.append(contactType);
+    contactType.append(createOption('telephone', 'Телефон'));
+    contactType.append(createOption('email', 'Email'));
+    contactType.append(createOption('facebook', 'Facebook'));
+    contactType.append(createOption('vk', 'Vk'));
+    contactType.append(createOption('other', 'Другое'));
+    if (value) {
+      contactType.value = value;
+    }
+    transformToCustomSelect(selectContainer);
+    return selectContainer;
+  }
+  //Кастомный селект
   function transformToCustomSelect(selectContainer) {
     const selectableElements = [];
     const selectElement = selectContainer.getElementsByTagName("select")[0];
@@ -119,59 +595,11 @@
     }
   }
 
-  function createFormTextInput({id, label, required, classToAdd, value}) {
-    const formGroup = document.createElement('div');
-    formGroup.classList.add('form-group');
-    if (classToAdd) {
-      formGroup.classList.add(classToAdd);
-    }
-
-    const inputElement = document.createElement('input');
-    inputElement.classList.add('form-group__input');
-    inputElement.id = id;
-    inputElement.name = id;
-    inputElement.type = 'text';
-    inputElement.required = !!required;
-    inputElement.addEventListener('focusout', function (event) {
-      this.classList.toggle('has-value', this.value);
-    })
-    if (value) {
-      inputElement.value = value;
-      inputElement.classList.add('has-value');
-    }
-    formGroup.append(inputElement);
-
-    const labelElement = document.createElement('label');
-    labelElement.classList.add('form-group__label')
-    labelElement.htmlFor = id;
-    labelElement.innerText = label
-    formGroup.append(labelElement);
-    return formGroup;
-  }
-
   function createOption(value, name) {
     const optionElement = document.createElement('option');
     optionElement.value = value;
     optionElement.innerText = name;
     return optionElement;
-  }
-
-  function createContractTypeSelect(value) {
-    const selectContainer = document.createElement('div');
-    selectContainer.classList.add('edit-client__contact-type', 'custom-select');
-    const contactType = document.createElement('select');
-    contactType.name = 'contactType';
-    selectContainer.append(contactType);
-    contactType.append(createOption('telephone', 'Телефон'));
-    contactType.append(createOption('email', 'Email'));
-    contactType.append(createOption('facebook', 'Facebook'));
-    contactType.append(createOption('vk', 'Vk'));
-    contactType.append(createOption('other', 'Другое'));
-    if (value) {
-      contactType.value = value;
-    }
-    transformToCustomSelect(selectContainer);
-    return selectContainer;
   }
 
   function createContactLine({onDelete}, contact) {
@@ -186,6 +614,9 @@
     if (contact) {
       contactValue.value = contact.value;
     }
+    contactValue.addEventListener('input', function (event) {
+      this.classList.remove('invalid');
+    })
     contactLine.append(contactValue);
     const deleteButton = document.createElement('button');
     deleteButton.classList.add('btn', 'edit-client__contact-delete', 'tooltip');
@@ -203,187 +634,6 @@
     deleteButton.append(tooltipText);
     contactLine.append(deleteButton);
     return contactLine;
-  }
-
-  function createContactsBlock(client) {
-    const contactsElement = document.createElement('div');
-    contactsElement.classList.add('edit-client__contacts');
-    const buttonWithIcon = document.createElement('div');
-    buttonWithIcon.classList.add('edit-client__btn-add-group');
-    const icon = `<svg class="edit-client__btn-add-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                    <g clip-path="url(#clip0_224_8628)">
-                      <path class="edit-client__btn-add-icon_defult" d="M7.99998 4.66659C7.63331 4.66659 7.33331 4.96659 7.33331 5.33325V7.33325H5.33331C4.96665 7.33325 4.66665 7.63325 4.66665 7.99992C4.66665 8.36659 4.96665 8.66659 5.33331 8.66659H7.33331V10.6666C7.33331 11.0333 7.63331 11.3333 7.99998 11.3333C8.36665 11.3333 8.66665 11.0333 8.66665 10.6666V8.66659H10.6666C11.0333 8.66659 11.3333 8.36659 11.3333 7.99992C11.3333 7.63325 11.0333 7.33325 10.6666 7.33325H8.66665V5.33325C8.66665 4.96659 8.36665 4.66659 7.99998 4.66659ZM7.99998 1.33325C4.31998 1.33325 1.33331 4.31992 1.33331 7.99992C1.33331 11.6799 4.31998 14.6666 7.99998 14.6666C11.68 14.6666 14.6666 11.6799 14.6666 7.99992C14.6666 4.31992 11.68 1.33325 7.99998 1.33325ZM7.99998 13.3333C5.05998 13.3333 2.66665 10.9399 2.66665 7.99992C2.66665 5.05992 5.05998 2.66659 7.99998 2.66659C10.94 2.66659 13.3333 5.05992 13.3333 7.99992C13.3333 10.9399 10.94 13.3333 7.99998 13.3333Z" fill="#9873FF"/>
-                      <path class="edit-client__btn-add-icon_action" fill-rule="evenodd" clip-rule="evenodd" d="M1.33331 8.00016C1.33331 4.32016 4.31998 1.3335 7.99998 1.3335C11.68 1.3335 14.6666 4.32016 14.6666 8.00016C14.6666 11.6802 11.68 14.6668 7.99998 14.6668C4.31998 14.6668 1.33331 11.6802 1.33331 8.00016ZM7.33329 5.33366C7.33329 4.96699 7.63329 4.66699 7.99996 4.66699C8.36663 4.66699 8.66663 4.96699 8.66663 5.33366V7.33366H10.6666C11.0333 7.33366 11.3333 7.63366 11.3333 8.00033C11.3333 8.36699 11.0333 8.66699 10.6666 8.66699H8.66663V10.667C8.66663 11.0337 8.36663 11.3337 7.99996 11.3337C7.63329 11.3337 7.33329 11.0337 7.33329 10.667V8.66699H5.33329C4.96663 8.66699 4.66663 8.36699 4.66663 8.00033C4.66663 7.63366 4.96663 7.33366 5.33329 7.33366H7.33329V5.33366Z" fill="#9873FF"/>
-                    </g>
-                  </svg>`;
-    buttonWithIcon.innerHTML = icon;
-
-    const addButton = document.createElement('button');
-    addButton.classList.add('edit-client__btn-add', 'btn', 'btn-simple');
-    addButton.innerText = 'Добавить контакт';
-    addButton.type = 'button';
-
-    let contactsList = document.createElement('ul');
-    contactsList.classList.add('edit-client__contacts-list');
-    contactsElement.prepend(contactsList);
-    const showHideAddButton = function() {
-      if (contactsList.childElementCount >= 10) {
-        buttonWithIcon.style.display = 'none';
-      } else {
-        buttonWithIcon.style.display = '';
-      }
-    }
-    if (client) {
-      for (const contact of client.contacts) {
-        contactsList.append(createContactLine({onDelete: showHideAddButton}, contact));
-      }
-      showHideAddButton();
-    }
-    addButton.addEventListener('click', function (event) {
-      contactsList.append(createContactLine({onDelete: showHideAddButton}));
-      showHideAddButton();
-    })
-    buttonWithIcon.append(addButton)
-    contactsElement.append(buttonWithIcon);
-    return contactsElement;
-  }
-
-  function resetValidationResult(form) {
-    let inputs = form.querySelectorAll('input');
-    for (const input of inputs) {
-      input.setCustomValidity("");
-    }
-  }
-
-  function showValidationMessage(form, validationResults) {
-    let errorText = 'Ошибка:\n';
-    const inputs = form.querySelectorAll('input');
-    for (const input of inputs) {
-      if (!input.validity.valid) {
-        const inputLabel = document.querySelector('label[for=\'' + input.id + '\']');
-        if (inputLabel) {
-          errorText += `${inputLabel.textContent}: ${input.validationMessage}\n`;
-        } else {
-          errorText += `${input.validationMessage}\n`;
-        }
-      }
-    }
-    validationResults.innerText = errorText;
-    validationResults.style.display = 'block';
-  }
-
-  function openEditClientPopup({onSave, onDelete}, client) {
-    const modal = createModal();
-    const content = document.createElement('div');
-    content.classList.add('edit-client');
-    modal.contentContainer.append(content);
-
-    const title = document.createElement('h1');
-    title.classList.add('modal__title', 'edit-client__title');
-    title.innerText = client ? 'Изменить данные' : 'Новый клиент';
-    content.append(title);
-    if (client) {
-      const clientIdElement = document.createElement('span');
-      clientIdElement.classList.add('edit-client__id');
-      clientIdElement.innerText = `ID: ${client.id}`;
-      title.append(clientIdElement);
-    }
-
-    const form = document.createElement('form');
-    form.classList.add('edit-client__form');
-    form.noValidate = true;
-    form.append(createFormTextInput({id: 'lastName', label: 'Фамилия', required: true, classToAdd: 'edit-client__lastName', value: client ? client.lastName : null}));
-    form.append(createFormTextInput({id: 'firstName', label: 'Имя', required: true, value: client ? client.name : null}));
-    form.append(createFormTextInput({id: 'middleName', label: 'Отчество', classToAdd: 'edit-client__middleName', value: client ? client.surname : null}));
-    form.append(createContactsBlock(client));
-
-    const errorBlock = document.createElement('p');
-    errorBlock.classList.add('edit-client__errors');
-    form.append(errorBlock);
-
-    const saveButton = document.createElement('button')
-    saveButton.classList.add('modal__btn-primary', 'btn', 'btn-primary');
-    saveButton.innerText = 'Сохранить';
-    saveButton.type = 'submit';
-    form.append(saveButton);
-
-    const cancelButton = document.createElement('button')
-    cancelButton.classList.add('modal__btn-secondary', 'btn', 'btn-simple');
-    cancelButton.type = 'button';
-    if (!client) {
-      cancelButton.innerText = 'Отмена';
-      cancelButton.addEventListener('click', function (event) {
-        modal.overlayElement.remove();
-      });
-    } else {
-      cancelButton.innerText = 'Удалить клиента';
-      cancelButton.addEventListener('click', function (event) {
-        onDelete(client.id);
-        modal.overlayElement.remove();
-      });
-    }
-    form.append(cancelButton);
-
-    form.addEventListener('submit', async function (event) {
-      event.preventDefault()
-      resetValidationResult(this);
-      const isFormValid = this.checkValidity();
-      this.classList.add('form-group_validated');
-      if (!isFormValid) {
-        showValidationMessage(this, errorBlock);
-        event.stopPropagation();
-      } else {
-        const loadingSign = document.createElement('div');
-        loadingSign.classList.add('btn__spinner');
-        saveButton.prepend(loadingSign);
-        const formData = new FormData(this);
-        const errorText = await onSave(formData, client ? client.id : null);
-        if (errorText) {
-          errorBlock.innerText = errorText;
-          errorBlock.style.display = 'block';
-          loadingSign.remove();
-        } else {
-          modal.overlayElement.remove();
-        }
-      }
-    })
-
-    content.append(form);
-    addModalAnimation(modal.modalElement);
-  }
-
-  function showLoading(container) {
-    container.innerHTML = '';
-    const loadingElement = document.createElement('div');
-    loadingElement.classList.add('loading');
-    container.append(loadingElement);
-    const loadingImg = document.createElement('div');
-    loadingImg.classList.add('loading__spinner');
-    loadingElement.append(loadingImg);
-    return loadingElement;
-  }
-
-  async function getFromServer(filter) {
-    const response = await fetch('http://localhost:3000/api/clients' + (filter ? `?search=${filter}` : ''));
-    return await response.json();
-  }
-
-  function prepareForForView(clients) {
-    let result = [];
-    for (const client of clients) {
-      const clientCopy = {...client}
-      clientCopy.fullName = `${client.lastName} ${client.name} ${client.surname}`;
-      clientCopy.createdAt = new Date(client.createdAt);
-      clientCopy.updatedAt = new Date(client.updatedAt);
-      result.push(clientCopy);
-    }
-    return result;
-  }
-
-  function sortData(data, prop, asc = true) {
-    return data.sort((s1, s2) => {
-      return (asc ? s1[prop] < s2[prop] : s1[prop] > s2[prop]) ? -1 : 1;
-    })
   }
 
   function createDataCell() {
@@ -467,25 +717,6 @@
         text = '';
     }
     return text;
-  }
-
-  function collectClientDataForRequest(formData) {
-    const request = {
-      name: formData.get('firstName'),
-      surname: formData.get('middleName'),
-      lastName: formData.get('lastName')
-    }
-    const contacts = [];
-    for (let i = 0; i < formData.getAll('contactType').length; i++) {
-      contacts.push({
-        type: formData.getAll('contactType')[i],
-        value: formData.getAll('contactValue')[i]
-      })
-    }
-    if (contacts.length > 0) {
-      request.contacts = contacts;
-    }
-    return request;
   }
 
   function createChangeButton(clientId, {onSave, onDelete}) {
@@ -589,209 +820,5 @@
       clientElements.push(renderClientItem(client, {onSave, onDelete}))
     }
     return clientElements
-  }
-
-  function confirmDelete(onConfirm) {
-    const modal = createModal();
-    const content = document.createElement('div');
-    content.classList.add('delete-client');
-    modal.contentContainer.append(content);
-
-    const title = document.createElement('h1');
-    title.classList.add('modal__title', 'delete-client__title');
-    title.innerText = 'Удалить клиента';
-    content.append(title);
-
-    const confirmText = document.createElement('div');
-    confirmText.classList.add('delete-client__text');
-    confirmText.innerText = 'Вы действительно хотите удалить данного клиента?';
-    content.append(confirmText);
-
-    const deleteButton = document.createElement('button')
-    deleteButton.classList.add('modal__btn-primary', 'btn', 'btn-primary');
-    deleteButton.innerText = 'Удалить';
-    deleteButton.type = 'button';
-    deleteButton.addEventListener('click', function (event) {
-      onConfirm();
-      modal.overlayElement.remove();
-    })
-    content.append(deleteButton);
-
-    const cancelButton = document.createElement('button')
-    cancelButton.classList.add('modal__btn-secondary', 'btn', 'btn-simple');
-    cancelButton.type = 'button';
-    cancelButton.innerText = 'Отмена';
-    cancelButton.addEventListener('click', function (event) {
-        modal.overlayElement.remove();
-    });
-    content.append(cancelButton);
-    addModalAnimation(modal.modalElement);
-  }
-
-  function addModalAnimation(modalElement) {
-    modalElement.classList.add('md-slide-in');
-    setTimeout(() => {
-      modalElement.classList.add('md-show');
-    }, 100);
-  }
-
-  function renderSortIcon(columnHeader, sortAsc, ascClass, descClass) {
-    columnHeader.classList.toggle(ascClass, !!sortAsc);
-    columnHeader.classList.toggle(descClass, sortAsc !== null && !sortAsc);
-  }
-
-  function renderSortTableHeader(sortProperty, sortAsc) {
-    const sotrableHeaders = document.querySelectorAll('[data-sort-prop]');
-
-    for (const header of sotrableHeaders) {
-      const headerClassList = header.classList;
-      for(var i=headerClassList.length-1 ; i>=0;i--){
-        if (headerClassList[i].endsWith("-asc") || headerClassList[i].endsWith("-desc")){
-          headerClassList.remove(headerClassList[i]);
-        }
-      }
-    }
-    const columnHeader = document.querySelector(`[data-sort-prop = '${sortProperty}']`);
-    if (columnHeader && columnHeader.classList.contains('clients__table-header_sortable')) {
-      if (columnHeader.classList.contains('clients__table-header_sortable-str')) {
-        renderSortIcon(columnHeader, sortAsc, 'clients__table-header_sortable-str-asc', 'clients__table-header_sortable-str-desc');
-      } else {
-        renderSortIcon(columnHeader, sortAsc, 'clients__table-header_sortable-asc', 'clients__table-header_sortable-desc');
-      }
-    }
-  }
-
-  function getMessageFromError(error) {
-    let message = error.message;
-    if (!message) {
-      message = 'Что-то пошло не так...';
-    }
-    return message;
-  }
-
-  function buildTableRows(clients) {
-    if (sortProperty) {
-      clients = sortData(clients, sortProperty, sortAsc);
-      renderSortTableHeader(sortProperty, sortAsc);
-    }
-
-    const handlers = {
-      async onSave(formData, clientId) {
-        const request = collectClientDataForRequest(formData);
-        try {
-          await fetch(`http://localhost:3000/api/clients/${clientId}`, {
-            method: 'PATCH',
-            body: JSON.stringify(request),
-            headers: {
-              'Content-Type': 'application/json'
-            }
-          });
-          loadClientsTable();
-        }
-        catch (error) {
-          return getMessageFromError(error);
-        }
-      },
-      async onDelete(clientId) {
-        const onConfirm = async function() {
-          await fetch(`http://localhost:3000/api/clients/${clientId}`, {
-            method: 'DELETE',
-            headers: {
-              'Content-Type': 'application/json'
-            }
-          });
-          loadClientsTable();
-        }
-        confirmDelete(onConfirm);
-      }
-    }
-
-    return getClientsRows(clientsForView, handlers);
-  }
-
-  function fillTableBody(tableBody, items) {
-    tableBody.innerHTML = '';
-    if (items) {
-      for (const clientElement of items) {
-        tableBody.append(clientElement);
-      }
-    }
-  }
-
-  async function loadClientsTable() {
-    const loading = showLoading(dataContainer);
-    const clients = await getFromServer(filter);
-    clientsForView = prepareForForView(clients);
-    const clientsItems = buildTableRows(clientsForView);
-    loading.remove();
-    fillTableBody(dataContainer, clientsItems);
-  }
-
-  document.addEventListener("DOMContentLoaded", async function (event) {
-    dataContainer = document.getElementById("dataContainer");
-    const handlers = {
-      async onSave(formData, clientId) {
-        const request = collectClientDataForRequest(formData);
-        try {
-          await fetch('http://localhost:3000/api/clients', {
-            method: 'POST',
-            body: JSON.stringify(request),
-            headers: {
-              'Content-Type': 'application/json'
-            }
-          });
-          loadClientsTable();
-        }
-        catch (error) {
-          return getMessageFromError(error);
-        }
-      }
-    }
-
-    document.getElementById("addClientButton").addEventListener ("click", function (event) {
-      openEditClientPopup(handlers);
-    });
-
-    document.querySelectorAll('[data-sort-prop]').forEach(header => header.addEventListener('click', function (event) {
-      if (this.dataset.sortProp === sortProperty) {
-        sortAsc = !sortAsc;
-      } else {
-        sortAsc = true;
-        sortProperty = this.dataset.sortProp;
-      }
-      fillTableBody(dataContainer, buildTableRows(clientsForView));
-    }));
-
-    var searchTimer;
-    document.getElementById('searchFilter').addEventListener('input', function (event) {
-      clearTimeout(searchTimer);
-      searchTimer = setTimeout(() => {
-        filter = this.value;
-        loadClientsTable();
-      }, 300);
-    })
-
-    document.addEventListener("click", closeAllSelect);
-
-    window.addEventListener('hashchange', function (event) {
-      openModalByHash();
-    });
-
-    await loadClientsTable();
-    openModalByHash();
-
-  });
-
-  function openModalByHash() {
-    if (this.location.hash) {
-      let target = this.document.querySelector(`[href = '${this.location.hash}']`);
-      if (target) {
-        const anotherModal = document.querySelector('.overlay');
-        if (anotherModal) {
-          anotherModal.remove();
-        }
-        target.click();
-      }
-    }
   }
 })();

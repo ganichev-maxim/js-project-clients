@@ -861,6 +861,10 @@ body {
   font-weight: 600;
 }
 
+.edit-client__contact-value.invalid {
+  border-color: rgba(240, 106, 77, 0.5);
+}
+
 .edit-client__contact-value::placeholder {
   color: var(--txt_grey, #B0B0B0);
   font-weight: 400;
