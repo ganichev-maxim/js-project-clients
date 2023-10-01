@@ -10,35 +10,17 @@
   //Направление сортировки
   let sortAsc = true;
 
-  const editHandlers = {
-    async onSave(formData, clientId) {
-      const request = collectClientDataForRequest(formData);
-      try {
-        await fetch(`http://localhost:3000/api/clients/${clientId}`, {
-          method: 'PATCH',
-          body: JSON.stringify(request),
-          headers: {
-            'Content-Type': 'application/json'
-          }
-        });
-        loadClientsTable();
-      }
-      catch (error) {
-        return getMessageFromError(error);
-      }
-    },
-    async onDelete(clientId) {
-      const onConfirm = async function() {
-        await fetch(`http://localhost:3000/api/clients/${clientId}`, {
-          method: 'DELETE',
-          headers: {
-            'Content-Type': 'application/json'
-          }
-        });
-        loadClientsTable();
-      }
-      confirmDelete(onConfirm);
+  async function onDelete(clientId) {
+    const onConfirm = async function() {
+      await fetch(`http://localhost:3000/api/clients/${clientId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      loadClientsTable();
     }
+    confirmDelete(onConfirm);
   }
 
   document.addEventListener("DOMContentLoaded", async function (event) {
@@ -48,17 +30,21 @@
       async onSave(formData, clientId) {
         const request = collectClientDataForRequest(formData);
         try {
-          await fetch('http://localhost:3000/api/clients', {
+          const response = await fetch('http://localhost:3000/api/clients', {
             method: 'POST',
             body: JSON.stringify(request),
             headers: {
               'Content-Type': 'application/json'
             }
           });
-          loadClientsTable();
+          if (response.ok) {
+            loadClientsTable();
+          } else {
+            return getMessageFromError(await response.json())
+          }
         }
         catch (error) {
-          return getMessageFromError(error);
+          return getMessageFromError();
         }
       }
     }
@@ -102,8 +88,8 @@
   function collectClientDataForRequest(formData) {
     const request = {
       name: formData.get('firstName'),
-      surname: formData.get('middleName'),
-      lastName: formData.get('lastName')
+      lastName: formData.get('middleName'),
+      surname: formData.get('lastName')
     }
     const contacts = [];
     for (let i = 0; i < formData.getAll('contactType').length; i++) {
@@ -147,7 +133,7 @@
     let result = [];
     for (const client of clients) {
       const clientCopy = {...client}
-      clientCopy.fullName = `${client.lastName} ${client.name} ${client.surname}`;
+      clientCopy.fullName = `${client.surname} ${client.name} ${client.lastName}`;
       clientCopy.createdAt = new Date(client.createdAt);
       clientCopy.updatedAt = new Date(client.updatedAt);
       result.push(clientCopy);
@@ -155,10 +141,15 @@
     return result;
   }
   //Получение текста ошибки
-  function getMessageFromError(error) {
-    let message = error.message;
-    if (!message) {
-      message = 'Что-то пошло не так...';
+  function getMessageFromError(response) {
+    let message = 'Что-то пошло не так...';
+    try {
+      let temp = ''
+      for (const error of response.errors) {
+        temp += `${error.message}\n`;
+      }
+      message = temp;
+    } catch {
     }
     return message;
   }
@@ -183,9 +174,9 @@
     const form = document.createElement('form');
     form.classList.add('edit-client__form');
     form.noValidate = true;
-    form.append(createFormTextInput({id: 'lastName', label: 'Фамилия', required: true, classToAdd: 'edit-client__lastName', value: client ? client.lastName : null}));
+    form.append(createFormTextInput({id: 'lastName', label: 'Фамилия', required: true, classToAdd: 'edit-client__lastName', value: client ? client.surname : null}));
     form.append(createFormTextInput({id: 'firstName', label: 'Имя', required: true, value: client ? client.name : null}));
-    form.append(createFormTextInput({id: 'middleName', label: 'Отчество', classToAdd: 'edit-client__middleName', value: client ? client.surname : null}));
+    form.append(createFormTextInput({id: 'middleName', label: 'Отчество', classToAdd: 'edit-client__middleName', value: client ? client.lastName : null}));
     form.append(createContactsBlock(client));
 
     const errorBlock = document.createElement('p');
@@ -229,6 +220,7 @@
         loadingSign.classList.add('btn__spinner');
         saveButton.prepend(loadingSign);
         const formData = new FormData(this);
+        disableForm(this, true);
         const errorText = await onSave(formData, client ? client.id : null);
         if (errorText) {
           errorBlock.innerText = errorText;
@@ -237,6 +229,7 @@
         } else {
           modal.overlayElement.remove();
         }
+        disableForm(this, false);
       }
     })
 
@@ -340,6 +333,13 @@
     contactsElement.append(buttonWithIcon);
     return contactsElement;
   }
+
+  function disableForm(form, isDisabled) {
+    let formElements = form.querySelectorAll('select, input, button, .custom-select');
+    formElements.forEach(elem => elem.disabled = isDisabled);
+    formElements = form.querySelectorAll('.custom-select');
+    formElements.forEach(elem => elem.classList.toggle('custom-select_disabled', isDisabled));
+  }
   //Сброс данных о валидации формы
   function resetValidationResult(form) {
     let inputs = form.querySelectorAll('input');
@@ -403,7 +403,12 @@
       renderSortTableHeader(sortProperty, sortAsc);
     }
 
-    return getClientsRows(clientsForView, editHandlers);
+    const onChange = function (hash) {
+      if (location.hash === hash) {
+        window.dispatchEvent(new HashChangeEvent("hashchange"));
+      }
+    }
+    return getClientsRows(clientsForView, {onChange, onDelete});
   }
   //сортировка
   function sortData(data, prop, asc = true) {
@@ -484,6 +489,7 @@
         if (anotherModal) {
           anotherModal.remove();
         }
+        target.classList.add('clients__button_loading');
         const response = await fetch(`http://localhost:3000/api/clients/${target.dataset.clientId}`, {
           method: 'GET',
           headers: {
@@ -491,7 +497,31 @@
           }
         });
         const client = await response.json();
-        openEditClientPopup(editHandlers, client);
+        const handlers = {
+          async onSave(formData, clientId) {
+            const request = collectClientDataForRequest(formData);
+            try {
+              const response = await fetch(`http://localhost:3000/api/clients/${clientId}`, {
+                method: 'PATCH',
+                body: JSON.stringify(request),
+                headers: {
+                  'Content-Type': 'application/json'
+                }
+              });
+              if (response.ok) {
+                loadClientsTable();
+              } else {
+                return getMessageFromError(await response.json())
+              }
+            }
+            catch (error) {
+              return getMessageFromError();
+            }
+          },
+          onDelete
+        }
+        target.classList.remove('clients__button_loading');
+        openEditClientPopup(handlers, client);
       }
     }
   }
@@ -728,7 +758,7 @@
     return text;
   }
 
-  function createChangeButton(clientId) {
+  function createChangeButton(clientId, onChange) {
     const changeButton = document.createElement('a');
     const hash = `#clientCard${clientId}`;
     changeButton.href = hash;
@@ -737,9 +767,7 @@
     changeButton.classList.add('clients__button', 'clients__change-button', 'btn', 'btn-simple');
     changeButton.innerHTML = 'Изменить';
     changeButton.addEventListener('click', async function (event) {
-      if (location.hash === this.dataset.hash) {
-        window.dispatchEvent(new HashChangeEvent("hashchange"));
-      }
+      onChange(this.dataset.hash);
     });
     return changeButton;
   }
@@ -790,7 +818,7 @@
     return contactsBlockElement;
   }
 
-  function renderClientItem (client, {onDelete}) {
+  function renderClientItem (client, {onChange, onDelete}) {
     const clientElement = document.createElement('div');
     clientElement.classList.add('clients__table-row', 'clients__table-data-row');
 
@@ -807,7 +835,7 @@
     clientElement.append(showContactsBlock(client.contacts));
 
     const buttonGroupElement = createDataCell();
-    buttonGroupElement.append(createChangeButton(client.id));
+    buttonGroupElement.append(createChangeButton(client.id, onChange));
     const deleteButton = document.createElement('button');
     deleteButton.classList.add('clients__button', 'clients__delete-button', 'btn', 'btn-simple');
     deleteButton.innerHTML = 'Удалить';
@@ -820,10 +848,10 @@
     return clientElement;
   }
 
-  function getClientsRows(clients, {onDelete}) {
+  function getClientsRows(clients, {onChange, onDelete}) {
     const clientElements = []
     for (const client of clients) {
-      clientElements.push(renderClientItem(client, {onDelete}))
+      clientElements.push(renderClientItem(client, {onChange, onDelete}))
     }
     return clientElements
   }

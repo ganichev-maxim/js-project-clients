@@ -96,6 +96,10 @@ body {
   user-select: none;
 }
 
+.btn:disabled {
+  cursor: default;
+}
+
 .btn:focus {
   outline: none;
 }
@@ -109,11 +113,11 @@ body {
   background-color: var(--firm, #9873FF);
 }
 
-.btn-primary:hover, .btn-primary:focus {
+.btn-primary:not(:disabled):hover, .btn-primary:not(:disabled):focus {
   background-color: var(--firm-light, rgba(152,115,255, 0.7));
 }
 
-.btn-primary:active {
+.btn-primary:not(:disabled):active {
   background-color: var(--firm, #9873FF);
 }
 
@@ -164,7 +168,7 @@ body {
   font-weight: 400;
 }
 
-.btn-simple:hover, .btn-simple:focus, .btn-simple:active {
+.btn-simple:not(:disabled):hover, .btn-simple:not(:disabled):focus, .btn-simple:not(:disabled):active {
   color: var(--firm, #9873FF);
 }
 
@@ -293,6 +297,17 @@ body {
   position: relative;
   color: var(--black-color, #333);
   font-size: 12px;
+}
+
+.custom-select_disabled::after {
+  content: "";
+  position: absolute;
+  left: 0;;
+  top: 0;
+  height: 100%;
+  width: 100%;
+  z-index: 100;
+  background: rgba(0, 0, 0, 0.1);
 }
 
 .custom-select select {
@@ -662,6 +677,31 @@ body {
   vertical-align: middle;
 }
 
+.clients__button.clients__button_loading::before {
+  height: 10px;
+  width: 10px;
+  margin: 0 3px;
+  border: 2px solid var(--firm);
+  border-right-color: transparent;
+  border-radius: 50%;
+  background: none;
+  animation: loading__spinner .75s linear infinite;
+}
+
+.loading__spinner {
+  --spinner-size: 36px;
+  display: inline-block;
+  position: sticky;
+  left: calc(50vw - var(--spinner-size));
+  width: var(--spinner-size);
+  height: var(--spinner-size);
+  vertical-align: text-bottom;
+  border: 4px solid var(--firm);
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: loading__spinner .75s linear infinite;
+}
+
 .clients__change-button::before {
   background-image: url('../img/edit.jpg');
 }
@@ -765,7 +805,10 @@ body {
 }
 
 .edit-client__btn-add-icon {
-  margin-right: 4px;
+  top: 50%;
+  position: absolute;
+  transform: translateY(-50%);
+  z-index: -1;
 }
 
 .edit-client__btn-add-icon_action {
@@ -778,18 +821,19 @@ body {
 }
 
 .edit-client__btn-add {
+  padding-left: 20px;
   font-weight: 600;
 }
 
-.edit-client__btn-add-group:has(.edit-client__btn-add:hover) .edit-client__btn-add-icon_action,
-.edit-client__btn-add-group:has(.edit-client__btn-add:focus) .edit-client__btn-add-icon_action,
-.edit-client__btn-add-group:has(.edit-client__btn-add:active) .edit-client__btn-add-icon_action {
+.edit-client__btn-add-group:has(.edit-client__btn-add:not(:disabled):hover) .edit-client__btn-add-icon_action,
+.edit-client__btn-add-group:has(.edit-client__btn-add:not(:disabled):focus) .edit-client__btn-add-icon_action,
+.edit-client__btn-add-group:has(.edit-client__btn-add:not(:disabled):active) .edit-client__btn-add-icon_action {
   opacity: 1;
 }
 
-.edit-client__btn-add-group:has(.edit-client__btn-add:hover) .edit-client__btn-add-icon_defult,
-.edit-client__btn-add-group:has(.edit-client__btn-add:focus) .edit-client__btn-add-icon_defult,
-.edit-client__btn-add-group:has(.edit-client__btn-add:active) .edit-client__btn-add-icon_defult {
+.edit-client__btn-add-group:has(.edit-client__btn-add:not(:disabled):hover) .edit-client__btn-add-icon_defult,
+.edit-client__btn-add-group:has(.edit-client__btn-add:not(:disabled):focus) .edit-client__btn-add-icon_defult,
+.edit-client__btn-add-group:has(.edit-client__btn-add:not(:disabled):active) .edit-client__btn-add-icon_defult {
   opacity: 0;
 }
 
@@ -887,17 +931,17 @@ body {
   transition: border-color .15s ease-in-out;
 }
 
-.edit-client__contact-delete:hover, .edit-client__contact-delete:focus, .edit-client__contact-delete:active {
+.edit-client__contact-delete:not(:disabled):hover, .edit-client__contact-delete:not(:disabled):focus, .edit-client__contact-delete:not(:disabled):active {
   border-color: var(--action-color);
 }
 
-.edit-client__contact-delete:hover .close-sign, .edit-client__contact-delete:focus .close-sign, .edit-client__contact-delete:active .close-sign {
+.edit-client__contact-delete:not(:disabled):hover .close-sign, .edit-client__contact-delete:not(:disabled):focus .close-sign, .edit-client__contact-delete:not(:disabled):active .close-sign {
   border-color: var(--action-color);
 }
 
-.edit-client__contact-delete:hover .close-sign::after, .edit-client__contact-delete:hover .close-sign::before,
-.edit-client__contact-delete:focus .close-sign::after, .edit-client__contact-delete:focus .close-sign::before,
-.edit-client__contact-delete:active .close-sign::after, .edit-client__contact-delete:active .close-sign::before {
+.edit-client__contact-delete:not(:disabled):hover .close-sign::after, .edit-client__contact-delete:not(:disabled):hover .close-sign::before,
+.edit-client__contact-delete:not(:disabled):focus .close-sign::after, .edit-client__contact-delete:not(:disabled):focus .close-sign::before,
+.edit-client__contact-delete:not(:disabled):active .close-sign::after, .edit-client__contact-delete:not(:disabled):active .close-sign::before {
   background-color: var(--action-color);
 }
 .edit-client__contact-delete .tooltip__text {
