@@ -88,12 +88,14 @@
     document.addEventListener("click", closeAllSelect);
     //Открытие карточки изменения клиента при изменении хеша
     window.addEventListener('hashchange', function (event) {
-      openModalByHash();
+      if (this.location.hash.startsWith('#clientCard')) {
+        openModalByHash();
+      }
     });
     //Обновление данных с сервера
     await loadClientsTable();
     //Открытие карточки изменения клиента при первичной загрузке страницы
-    openModalByHash();
+    window.dispatchEvent(new HashChangeEvent("hashchange"));
   });
 
   //Трансформация данных формы в json
@@ -728,7 +730,7 @@
 
   function createChangeButton(clientId) {
     const changeButton = document.createElement('a');
-    const hash = `#user${clientId}`;
+    const hash = `#clientCard${clientId}`;
     changeButton.href = hash;
     changeButton.dataset.clientId = clientId;
     changeButton.dataset.hash = hash;
