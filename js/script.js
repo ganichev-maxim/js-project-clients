@@ -62,14 +62,8 @@
       fillTableBody(dataContainer, buildTableRows(clientsForView));
     }));
     //Поиск
-    var searchTimer;
-    document.getElementById('searchFilter').addEventListener('input', function (event) {
-      clearTimeout(searchTimer);
-      searchTimer = setTimeout(() => {
-        filter = this.value;
-        loadClientsTable();
-      }, 300);
-    })
+    buildSearchBlock();
+    document.addEventListener('click', closeSearchResults);
     //Закрытие кастомных селектов
     document.addEventListener("click", closeAllSelect);
     //Открытие карточки изменения клиента при изменении хеша
@@ -821,6 +815,7 @@
   function renderClientItem (client, {onChange, onDelete}) {
     const clientElement = document.createElement('div');
     clientElement.classList.add('clients__table-row', 'clients__table-data-row');
+    clientElement.id = `client${client.id}`;
 
     const clientIdElement = createDataCell();
     clientIdElement.innerHTML = client.id;
@@ -854,5 +849,107 @@
       clientElements.push(renderClientItem(client, {onChange, onDelete}))
     }
     return clientElements
+  }
+
+  function buildSearchBlock() {
+    var searchTimer;
+    const searchFilterBlockElement = document.getElementById('searchFilterBlock');
+    const searchFilterInputElement = document.getElementById('searchFilter');
+    searchFilterInputElement.addEventListener('click', function (event) {
+      event.stopPropagation();
+    })
+    searchFilterInputElement.addEventListener('keydown', function (event) {
+      if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        const selectedElement = searchFilterBlockElement.querySelector('.header__auto-complete-list-item:not(:last-child).active');
+        if (selectedElement) {
+          selectedElement.classList.remove('active');
+          selectedElement.nextSibling.classList.add('active');
+        }
+      }
+      if (event.key === 'ArrowUp') {
+        event.preventDefault();
+        const selectedElement = searchFilterBlockElement.querySelector('.header__auto-complete-list-item:not(:first-child).active');
+        if (selectedElement) {
+          selectedElement.classList.remove('active');
+          selectedElement.previousSibling.classList.add('active');
+        }
+      }
+      if (event.key === 'Enter') {
+        const selectedElement = searchFilterBlockElement.querySelector('.header__auto-complete-list-item.active > .header__auto-complete-list-item-link');
+        if (selectedElement) {
+          selectedElement.click();
+        }
+      }
+    })
+    searchFilterInputElement.addEventListener('click', async function (event) {
+      const searchValue = this.value;
+      const serchResultsElement = document.getElementById('searchResults');
+      if (searchValue && !serchResultsElement) {
+        const searchResults = await performSearch(searchValue);
+        if (searchResults) {
+          searchFilterBlockElement.append(searchResults);
+        }
+      }
+    })
+    searchFilterInputElement.addEventListener('input', function (event) {
+      clearTimeout(searchTimer);
+      const searchValue = this.value;
+      let serchResultsElement = document.getElementById('searchResults');
+      if (serchResultsElement) {
+        serchResultsElement.remove();
+      }
+      searchTimer = setTimeout(async function() {
+        if (searchValue) {
+          const searchResults = await performSearch(searchValue);
+          if (searchResults) {
+            searchFilterBlockElement.append(searchResults);
+          }
+        }
+      }, 300);
+    });
+  }
+
+  async function performSearch(searchValue, ) {
+    const MAX_SEARCH_RESULT = 10;
+    const clients = await getFromServer(searchValue);
+    if (clients.length > 0) {
+      serchResultsElement = document.createElement('ul');
+      serchResultsElement.id = 'searchResults';
+      serchResultsElement.classList.add('header__auto-complete-list');
+      let count = 0;
+      for (const client of clients) {
+        if (count >= MAX_SEARCH_RESULT) {
+          break;
+        }
+        const searchItemElement = document.createElement('li');
+        searchItemElement.classList.add('header__auto-complete-list-item');
+        searchItemElement.classList.toggle('active', count === 0);
+        //searchItemElement.dataset.clientId = client.id;
+        serchResultsElement.append(searchItemElement);
+        const clientRefElement = document.createElement('a');
+        clientRefElement.href = `#client${client.id}`;
+        clientRefElement.innerText = `${client.name} ${client.surname}`;
+        clientRefElement.classList.add('header__auto-complete-list-item-link');
+        clientRefElement.tabIndex = -1;
+        clientRefElement.addEventListener('click', function (event) {
+          for (const row of document.getElementsByClassName('clients__table-data-row')) {
+            row.classList.remove('active');
+          }
+          const selectedRow = document.getElementById(this.href.substring(this.href.indexOf('#') + 1));
+          selectedRow.classList.add('active');
+        })
+        searchItemElement.append(clientRefElement);
+        count++;
+      }
+      return serchResultsElement;
+    }
+  }
+
+  function closeSearchResults() {
+    const searchResults = document.getElementById('searchResults');
+    if (searchResults) {
+      searchResults.remove();
+    }
   }
 })();

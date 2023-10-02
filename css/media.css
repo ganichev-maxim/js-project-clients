@@ -49,7 +49,7 @@
     transform: translateX(-50%);
   }
 
-  .header__filter {
+  .header__auto-complete {
     display: none;
   }
 
