@@ -78,7 +78,7 @@
     window.dispatchEvent(new HashChangeEvent("hashchange"));
     //Закгрыте модального окна с клавиатуры
     document.addEventListener('keydown', function (event) {
-      if (event.key = 'Escape') {
+      if (event.key === 'Escape') {
         const modal = document.querySelector('.overlay');
         if (modal) {
           modal.remove();
